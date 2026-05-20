@@ -30,6 +30,7 @@
     background: #eee;
     position: sticky;
     top: 0;
+    z-index: 2;
 
     #content-container {
       // Used inside ContentContainer
