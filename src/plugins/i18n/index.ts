@@ -9,8 +9,7 @@ const messages = {
 }
 
 function getStorageLanguage(): string {
-  const lang = StorageService.getItem(SELECTED_LANGUAGE_KEY)
-  console.log('getStorageLanguage', lang);
+  const lang = StorageService.getItem(SELECTED_LANGUAGE_KEY);
   return lang ?? 'en'
 }
 
