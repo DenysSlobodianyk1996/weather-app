@@ -1,11 +1,11 @@
 import { createI18n } from 'vue-i18n'
 import en from './en'
-import ua from './ua'
+import uk from './uk'
 import { SELECTED_LANGUAGE_KEY } from '@/static'
 import { StorageService } from '@/services'
 
 const messages = {
-  en, ua
+  en, uk
 }
 
 function getStorageLanguage(): string {

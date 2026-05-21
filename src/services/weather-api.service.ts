@@ -26,6 +26,7 @@ export const WeatherApiService = {
       lon,
       units: 'metric'
     }
+    return Promise.resolve({})
     return openweathermapApi.get<WeatherModel>(url, {params}).then(res => res.data)
   }
 }

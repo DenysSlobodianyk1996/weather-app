@@ -1,4 +1,5 @@
-import type { IpInfoModel } from '@/models';
+import type { IpInfoModel, SearchCitiesRequest, SearchCityModel } from '@/models';
+import { uniqueByProps } from '@/utils';
 import axios from 'axios'
 
 const geoapifyApi = axios.create({
@@ -21,4 +22,29 @@ export const GeoapifyApiService = {
     })
     return geoapifyApi.get<IpInfoModel>(url).then(res => res.data)
   },
+  searchCities({
+    search: text,
+    locale: lang
+  }: SearchCitiesRequest) {
+    const url = 'geocode/autocomplete';
+    const params = {
+      type: 'city',
+      text,
+      lang
+    }
+    return geoapifyApi.get(url, {params})
+      .then(res => {
+        const searchResult = res.data.features.map(({ properties }: any) => {
+          const {lon, lat, city, state, country, municipality, place_id} = properties;
+          const cityLabel = [
+            city, state,
+            municipality,
+            country,
+          ].filter(Boolean).join(', ');
+        
+          return { lon, lat, place_id, cityLabel } as SearchCityModel
+        });
+        return uniqueByProps(searchResult, ['lat', 'lon']);
+      });
+  }
 }

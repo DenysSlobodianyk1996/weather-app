@@ -7,6 +7,7 @@
     <template v-for="cityCard in cityCards" :key="cityCard.id">
       <CityCard
         :city-card="cityCard"
+        :hideRemove="cityCards.length <= 1"
         @remove="emit('remove', $event)"
         @update="emit('update', $event)"
       />

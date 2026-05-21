@@ -1,22 +1,34 @@
 <template>
   <div class="city-card">
+    <div class="city-card__toolbar">
+      <SearchCity @select="selectCity($event)" />
+      <div class="toolbar-actions">
+        <template v-if="!hideRemove">
+          <button
+            class="city-card__delete"
+            @click="emit('remove', cityCard.id)">
+            <span class="material-icons">delete_outline</span>
+          </button>
+        </template>
+        <template v-if="!!cityLocation">
+          <!-- Add to favorite if only city location is selected -->
+          <button class="city-card__favorite" @click="toggleFavorite">
+            <span class="material-icons">{{ toggleFavoriteIcon }}</span>
+          </button>
+        </template>
+      </div>
+    </div>
     <p>{{ cityCard }}</p>
-    <template v-if="!hideRemove">
-      <button @click="emit('remove', cityCard.id)">Remove city card</button>
-    </template>
-    <template v-if="!!cityLocation">
-      <!-- Add to favorite if only city location is selected -->
-      <button @click="toggleFavorite">{{ toggleFavoriteTitle }}</button>
-    </template>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
   import type { CityCardModel } from '../models';
-  import type { ForcastRequestModel, WeatherModel } from '@/models';
+  import type { ForcastRequestModel, LocationModel, SearchCityModel, WeatherModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
+  import SearchCity from './SearchCity.vue'
 
   const { locale } = useI18n()
   const props = defineProps<{
@@ -25,15 +37,14 @@
   }>();
   const cityCard = computed(() => props.cityCard);
   const hideRemove = computed(() => props.hideRemove);
-
   const cityLocation = computed(() => cityCard.value.cityLocation);
 
-  const toggleFavoriteTitle = computed(() => {
+  const toggleFavoriteIcon = computed(() => {
     const isFavorite = cityCard.value.isFavorite;
     return isFavorite
-      ? 'Remove from Favorite'
-      : 'Add to Favorite'
-  })
+      ? 'favorite'
+      : 'favorite_border'
+  });
 
   const emit = defineEmits<{
     update: [updatedCityCard: CityCardModel],
@@ -59,6 +70,18 @@
       })
   }
 
+  function selectCity({ lat, lon}: SearchCityModel) {
+    const newCityLocation: LocationModel = {
+      latitude: lat,
+      longitude: lon,
+    };
+    const newCityCard: CityCardModel = {
+      ...cityCard.value,
+      cityLocation: newCityLocation
+    }
+    emit('update', newCityCard)
+  }
+
   // Load weather data
   watch(
     () => ({
@@ -69,8 +92,6 @@
       lastLocale,
       lastLocation
     }) => {
-      console.log('track data', lastLocale,lastLocation);
-      
       if(!lastLocale || !lastLocation) {
         return;
       }
@@ -83,7 +104,6 @@
       immediate: true
     }
   )
-
 </script>
 
 <style lang="scss" scoped>
@@ -92,5 +112,38 @@
     padding: 24px;
     display: flex;
     flex-direction: column;
+
+    &__toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+
+      .toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    }
+
+    &__favorite,
+    &__delete {
+      display: flex;
+      align-items: center;
+      all: unset;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 4px;
+      &:hover {
+        background-color: rgba($color: #eee, $alpha: .8);
+      }
+    }
+
+    &__favorite {
+      color: orange;
+    }
+    &__delete {
+      color: red;
+    }
   }
 </style>
