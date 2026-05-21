@@ -9,7 +9,7 @@
   import { watch } from 'vue';
   import Header from '@/layouts/Header.vue'
   import Main from '@/layouts/Main.vue'
-  import WeatherPage from './pages/WeatherPage.vue'
+  import WeatherPage from './pages/weather-page'
 
   import { useI18n } from 'vue-i18n'
   import { StorageService } from './services';

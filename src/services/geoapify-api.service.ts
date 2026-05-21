@@ -16,6 +16,9 @@ geoapifyApi.interceptors.request.use(config => {
 export const GeoapifyApiService = {
   getIpInfo() {
     const url = 'ipinfo';
+    return Promise.resolve<IpInfoModel>({
+      location: {latitude: 49.8004, longitude: 30.1285}
+    })
     return geoapifyApi.get<IpInfoModel>(url).then(res => res.data)
   },
 }

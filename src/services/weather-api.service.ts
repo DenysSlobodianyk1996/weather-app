@@ -1,4 +1,4 @@
-import type { LocationModel, WeatherModel } from '@/models';
+import type { ForcastRequestModel, WeatherModel } from '@/models';
 import axios from 'axios'
 
 const openweathermapApi = axios.create({
@@ -14,11 +14,11 @@ openweathermapApi.interceptors.request.use(config => {
 })
 
 export const WeatherApiService = {
-  get5Days3hoursForecast({
-    lang,
+  get5Days3HoursForecast({
+    locale: lang,
     latitude: lat,
     longitude: lon
-  }: LocationModel & {lang: string}) {
+  }: ForcastRequestModel) {
     const url = '/2.5/forecast';
     const params = {
       lang,
