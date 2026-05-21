@@ -1,7 +1,8 @@
 <template>
   <div class="tab-toolbar">
-    <p>Main tab</p>
-    <button @click="emit('add')">Add Card</button>
+    <button class="add-action" @click="emit('add')">
+      <span class="material-icons">add_circle</span>
+    </button>
   </div>
   <div class="tab-cards">
     <template v-for="cityCard in cityCards" :key="cityCard.id">
@@ -35,4 +36,13 @@
 
 <style lang="scss" scoped>
   @use './shared-tab-styles.scss';
+
+  .add-action {
+    all: unset;
+    color: rgba($color: green, $alpha: .8);
+    cursor: pointer;
+    &:hover {
+      color: green;
+    }
+  }
 </style>

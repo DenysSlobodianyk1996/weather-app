@@ -1,6 +1,6 @@
   .tab-toolbar {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     padding: 8px;
   }
@@ -10,6 +10,11 @@
     flex-wrap: wrap;
     width: 100%;
     gap: 16px;
+
+    .no-data {
+      padding: 16px;
+    }
+
     .city-card {
       width: calc(50% - 8px);
       box-sizing: border-box;

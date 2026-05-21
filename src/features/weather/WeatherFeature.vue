@@ -1,10 +1,17 @@
 <template>
-  <div class="whether-page">
-    <p>Whether app</p>
-    <div>
-        <button @click="setTabMode('main')">Main</button>
-        <button @click="setTabMode('favorite')">Favorite</button>
-    </div>
+  <div class="wheather-feature">
+    <div class="wheather-feature__tabs">
+      <button
+        :class="{
+          active: weatherTabMode === 'main'
+        }"
+        @click="setTabMode('main')">Main</button>
+      <button
+        :class="{
+          active: weatherTabMode === 'favorite'
+        }"
+        @click="setTabMode('favorite')">Favorite</button>
+   </div>
 
     <template v-if="weatherTabMode === 'main'">
       <MainWeatherTab
@@ -118,12 +125,24 @@
   )
 </script>
 
-<style scoped>
-  .whether-page {
+<style lang="scss" scoped>
+  .wheather-feature {
     display: flex;
     flex-direction: column;
     padding: 24px;
     max-width: 100%;
-  }
 
+    &__tabs {
+      button {
+        all: unset;
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 8px 16px;
+        background: rgba($color: #ddd, $alpha: .4);
+        &.active {
+          background: #ddd;
+        }
+      }
+    }
+  }
 </style>

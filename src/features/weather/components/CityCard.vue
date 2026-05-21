@@ -116,6 +116,7 @@
     &__toolbar {
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
       gap: 8px;
       flex-wrap: wrap;
 
@@ -123,27 +124,26 @@
         display: flex;
         align-items: center;
         gap: 4px;
-      }
-    }
 
-    &__favorite,
-    &__delete {
-      display: flex;
-      align-items: center;
-      all: unset;
-      cursor: pointer;
-      border-radius: 4px;
-      padding: 4px;
-      &:hover {
-        background-color: rgba($color: #eee, $alpha: .8);
+        button {
+          all: unset;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          border-radius: 4px;
+          padding: 4px;
+          &:hover {
+            background-color: rgba($color: #eee, $alpha: .8);
+          }
+        }
       }
     }
 
     &__favorite {
-      color: orange;
+      color: orange !important;
     }
     &__delete {
-      color: red;
+      color: red !important;
     }
   }
 </style>

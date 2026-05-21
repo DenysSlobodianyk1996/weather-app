@@ -1,7 +1,4 @@
 <template>
-  <div class="tab-toolbar">
-    <p>Favorite tab</p>
-  </div>
   <div class="tab-cards">
     <template v-for="cityCard in favoriteCityCards" :key="cityCard.id">
       <CityCard
@@ -11,7 +8,7 @@
       />
     </template>
     <template v-if="favoriteCityCards.length === 0">
-      No Favorites
+      <p class="no-data">No Favorites</p>
     </template>
   </div>
 </template>
