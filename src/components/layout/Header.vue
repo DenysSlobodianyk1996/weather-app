@@ -11,7 +11,7 @@
 <script setup lang="ts">
   import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import ContentContainer from './ContentContainer.vue'
+  import ContentContainer from '../base/ContentContainer.vue'
 
   const { t, locale, availableLocales } = useI18n()
   const logoSrc = ref('/weather.png')

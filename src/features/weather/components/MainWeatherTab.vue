@@ -1,17 +1,15 @@
 <template>
   <div class="tab-toolbar">
-    <p>Favorite tab</p>
+    <p>Main tab</p>
+    <button @click="emit('add')">Add Card</button>
   </div>
   <div class="tab-cards">
-    <template v-for="cityCard in favoriteCityCards" :key="cityCard.id">
+    <template v-for="cityCard in cityCards" :key="cityCard.id">
       <CityCard
         :city-card="cityCard"
-        :hideRemove="true"
+        @remove="emit('remove', $event)"
         @update="emit('update', $event)"
       />
-    </template>
-    <template v-if="favoriteCityCards.length === 0">
-      No Favorites
     </template>
   </div>
 </template>
@@ -22,15 +20,18 @@
   import CityCard from './CityCard.vue';
 
   const props = defineProps<{
-    favoriteCityCards: CityCardModel[]
-  }>()
-  const favoriteCityCards = computed(() => props.favoriteCityCards);
+    cityCards: CityCardModel[]
+  }>();
+  const cityCards = computed(() => props.cityCards);
 
   const emit = defineEmits<{
+    add: [],
     update: [updatedCityCard: CityCardModel],
+    remove: [id: number]
   }>();
+
 </script>
 
 <style lang="scss" scoped>
-  @use './shared-styles.scss';
+  @use './shared-tab-styles.scss';
 </style>

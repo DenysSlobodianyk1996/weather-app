@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-  import ContentContainer from './ContentContainer.vue'
+  import ContentContainer from '../base/ContentContainer.vue'
 </script>
 
 <style lang="scss" scoped>
