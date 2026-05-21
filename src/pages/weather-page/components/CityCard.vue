@@ -1,8 +1,13 @@
 <template>
   <div class="city-card">
     <p>{{ cityCard }}</p>
-    <button @click="emit('remove', cityCard.id)">Remove city card</button>
-    <button @click="toggleFavorite">{{ toggleFavoriteTitle }}</button>
+    <template v-if="!hideRemove">
+      <button @click="emit('remove', cityCard.id)">Remove city card</button>
+    </template>
+    <template v-if="!!cityLocation">
+      <!-- Add to favorite if only city location is selected -->
+      <button @click="toggleFavorite">{{ toggleFavoriteTitle }}</button>
+    </template>
   </div>
 </template>
 
@@ -15,9 +20,11 @@
 
   const { locale } = useI18n()
   const props = defineProps<{
+    hideRemove?: boolean,
     cityCard: CityCardModel
   }>();
   const cityCard = computed(() => props.cityCard);
+  const hideRemove = computed(() => props.hideRemove);
 
   const cityLocation = computed(() => cityCard.value.cityLocation);
 
