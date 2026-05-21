@@ -1,11 +1,14 @@
+import type { LocationModel } from "./location.model";
+
 export interface SearchCitiesRequest {
-  search: string;
-  locale: string;
+  text: string;
+  lang: string;
+}
+export interface CityDetailsRequest extends LocationModel {
+  lang: string;
 }
 
-export interface SearchCityModel {
+export interface SearchCitiesResultModel extends LocationModel {
   place_id: string;
-  lon: number;
-  lat: number;
   cityLabel: string; // Generated on FE 
 }

@@ -19,7 +19,7 @@
 <script setup lang="ts">
   import { computed } from 'vue';
   import type { CityCardModel } from '../models';
-  import CityCard from './CityCard.vue';
+  import CityCard from './city-card/CityCard.vue';
 
   const props = defineProps<{
     cityCards: CityCardModel[]

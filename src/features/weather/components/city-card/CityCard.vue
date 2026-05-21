@@ -1,7 +1,7 @@
 <template>
   <div class="city-card">
     <div class="city-card__toolbar">
-      <SearchCity @select="selectCity($event)" />
+      <CitySearch @select="selectCity($event)" />
       <div class="toolbar-actions">
         <template v-if="!hideRemove">
           <button
@@ -18,17 +18,30 @@
         </template>
       </div>
     </div>
-    <p>{{ cityCard }}</p>
+
+    <template v-if="!!cityLocation">
+      <CityDetails :cityLocation="cityLocation" />
+
+      <CityWeather class="city-card__weather" />
+
+      <CityDayTemperature class="city-card__day-temperature" />
+    </template>
+    <template v-else>
+      <p>Please select city</p>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
-  import type { CityCardModel } from '../models';
-  import type { ForcastRequestModel, LocationModel, SearchCityModel, WeatherModel } from '@/models';
+  import type { CityCardModel } from '../../models';
+  import type { ForcastRequestModel, LocationModel, SearchCitiesResultModel, WeatherModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
-  import SearchCity from './SearchCity.vue'
+  import CitySearch from './CitySearch.vue'
+  import CityDayTemperature from './CityDayTemperature.vue'
+  import CityDetails from './CityDetails.vue'
+  import CityWeather from './CityWeather.vue'
 
   const { locale } = useI18n()
   const props = defineProps<{
@@ -70,11 +83,7 @@
       })
   }
 
-  function selectCity({ lat, lon}: SearchCityModel) {
-    const newCityLocation: LocationModel = {
-      latitude: lat,
-      longitude: lon,
-    };
+  function selectCity(newCityLocation: LocationModel) {
     const newCityCard: CityCardModel = {
       ...cityCard.value,
       cityLocation: newCityLocation
@@ -96,7 +105,7 @@
         return;
       }
       loadWeatherByLocation({
-        locale: lastLocale,
+        lang: lastLocale,
         ...lastLocation
       });
     },
@@ -112,6 +121,7 @@
     padding: 24px;
     display: flex;
     flex-direction: column;
+    gap: 16px;
 
     &__toolbar {
       display: flex;

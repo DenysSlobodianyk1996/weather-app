@@ -69,9 +69,8 @@
     }
 
     // If no favorite before - setup first card with city by IP
-    GeoapifyApiService.getIpInfo()
-      .then(ipInfo => {
-        const ipLocation = ipInfo.location;
+    GeoapifyApiService.getIpLocation()
+      .then(ipLocation => {
         const cityCard: CityCardModel = {
           id: generateId(),
           cityLocation: ipLocation

@@ -1,5 +1,5 @@
-import type { LocationModel } from './ip-info.model';
+import type { LocationModel } from './location.model';
 
 export interface ForcastRequestModel extends LocationModel {
-  locale: string
+  lang: string
 }

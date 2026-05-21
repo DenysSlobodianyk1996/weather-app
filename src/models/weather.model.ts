@@ -3,7 +3,7 @@ export interface WeatherModel {
   message: number
   cnt: number
   list: WeatherList[]
-  city: City
+  // city: City // don't have enough info about city
 }
 
 export interface WeatherList {

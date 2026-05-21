@@ -1,13 +1,18 @@
 <template>
   <div ref="searchCityBoxRef" class="search-city">
     <div class="input-wrapper">
-      <input
-        id="search-input"
-        placeholder="Search city"
-        ref="searchInput"
-        type="text"
-        @focus="citySearchFocused = true"
-        v-model="citySearchText" />
+      <div class="input-with-addon">
+        <input
+          id="search-input"
+          placeholder="Search city"
+          ref="searchInput"
+          type="text"
+          @focus="citySearchFocused = true"
+          v-model="citySearchText" />
+        <button id="my-location" @click="selectMyLocation">
+          <span class="material-icons">my_location</span>
+        </button>
+      </div>
       <small>Please type at least {{ MIN_SEARCH_CHARACTERS }} characters</small>
     </div>
     <template v-if="searchResultsVisible">
@@ -20,7 +25,7 @@
         </template>
         <template v-else>
           <template v-for="proposedCity in citiesSearchResult" :key="proposedCity.place_id">
-            <li class="result-item" @click.prevent="emit('select', proposedCity); citySearchText = ''">
+            <li class="result-item" @click.prevent="selectCityFromSearchResult(proposedCity); citySearchText = ''">
               {{ proposedCity.cityLabel }}
             </li>
           </template>
@@ -33,7 +38,7 @@
 <script setup lang="ts">
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import { debounce, useClickOutside } from '@/utils';
-  import type { SearchCitiesRequest, SearchCityModel } from '@/models';
+  import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
   import { MIN_SEARCH_CHARACTERS } from '@/static';
   import { useI18n } from 'vue-i18n';
@@ -43,10 +48,10 @@
   const citySearchText = ref('');
   const citySearchLoading = ref(false);
   const citySearchFocused = ref(false);
-  const citiesSearchResult = ref<SearchCityModel[]>([]);
+  const citiesSearchResult = ref<SearchCitiesResultModel[]>([]);
 
   const emit = defineEmits<{
-    select: [city: SearchCityModel]
+    select: [cityLocation: LocationModel]
   }>();
 
   // Handle click outside search city list
@@ -59,6 +64,19 @@
     return citySearchFocused.value && citySearchText.value?.length >= MIN_SEARCH_CHARACTERS;
   });
 
+  // Select Location logic
+  function selectCityFromSearchResult({lat, lon}: SearchCitiesResultModel) {
+    emit('select', {lat, lon});
+  }
+
+  function selectMyLocation() {
+    GeoapifyApiService.getIpLocation()
+      .then(ipLocation => {
+        emit('select', ipLocation);
+      });
+  }
+
+  // Search city
   const loadCitiesBySearch = debounce((request: SearchCitiesRequest) => {
     GeoapifyApiService.searchCities(request)
       .then(cities => {
@@ -69,7 +87,6 @@
       })
   }, 500);
 
-  // Search city
    watch(
     () => locale.value,
     () => {
@@ -88,8 +105,8 @@
 
       citySearchLoading.value = true;
       loadCitiesBySearch({
-        search: lastCitySearchText,
-        locale: locale.value
+        text: lastCitySearchText,
+        lang: locale.value
       });
     },
     {
@@ -110,9 +127,26 @@
       flex-direction: column;
       gap: 2px;
       width: 100%;
-      input[id="search-input"] {
-        padding: 8px;
-        margin: 4px 0;
+
+      .input-with-addon {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        input[id="search-input"] {
+          padding: 8px;
+          margin: 4px 0;
+        }
+
+        button[id="my-location"] {
+          all: unset;
+          padding: 4px;
+          border-radius: 4px;
+          cursor: pointer;
+          &:hover {
+            background-color: rgba($color: #eee, $alpha: .8);
+          }
+        }
       }
     }
 
