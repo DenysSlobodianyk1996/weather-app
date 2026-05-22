@@ -34,7 +34,6 @@
 
 <style lang="scss" scoped>
   header {
-    padding: 16px;
     background: #eee;
     position: sticky;
     top: 0;
@@ -45,6 +44,8 @@
       display: flex;
       justify-content: center;
       gap: 16px;
+      padding: 16px;
+      box-sizing: border-box;
     }
 
     img {
