@@ -150,7 +150,18 @@ import { debounce } from '@/utils';
       canvasRef.value!,
       {
         type: 'bar',
-        data: generateBarChartData(timeKeysForecastData.value)
+        data: generateBarChartData(timeKeysForecastData.value),
+        options: {
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.parsed.y} °C`
+                }
+              }
+            }
+          }
+        }
       }
     );
   });
