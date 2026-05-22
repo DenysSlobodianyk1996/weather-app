@@ -16,7 +16,7 @@
                 </Button>
               </template>
               <template #dialogContent>
-                <h3>Do you want to delete this card?</h3>
+                <h3>{{ t('message.deleteThisCard') }}</h3>
               </template>
             </ConfirmDialog>
           </template>
@@ -34,14 +34,12 @@
 
     <template v-if="!!cityLocation">
       <CityWeather
-        :weather5Days3HoursForecast="weather5Days3HoursForecast">
+        :weather5Days3HoursForecast="weather5Days3HoursForecast"
+        :weather5Days3HoursForecastLoading="weather5Days3HoursForecastLoading">
         <template #cityDetails>
           <CityDetails  :cityLocation="cityLocation" />
         </template>
       </CityWeather>
-    </template>
-    <template v-else>
-      <p>Please select city</p>
     </template>
   </div>
 </template>
@@ -58,7 +56,8 @@
   import ConfirmDialog from '@/components/base/ConfirmDialog.vue';
   import Button from '@/components/base/Button.vue';
 
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
+
   const props = defineProps<{
     hideRemove?: boolean,
     hideToolbar?: boolean,
@@ -82,6 +81,7 @@
   }>();
 
   const weather5Days3HoursForecast = ref<WeatherList[] | null>(null);
+  const weather5Days3HoursForecastLoading = ref(false);
 
   function toggleFavorite() {
     const newIsFavorite = !cityCard.value.isFavorite;
@@ -93,9 +93,13 @@
   }
 
   function loadWeatherByLocation(request: ForcastRequestModel) {
+    weather5Days3HoursForecastLoading.value = true;
      WeatherApiService.get5Days3HoursForecast(request)
       .then(weather => {
         weather5Days3HoursForecast.value = weather;
+      })
+      .finally(() => {
+        weather5Days3HoursForecastLoading.value = false;
       })
   }
 
@@ -133,7 +137,8 @@
 
 <style lang="scss" scoped>
   .city-card {
-    border: 1px solid #eee;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     padding: 24px;
     display: flex;
     flex-direction: column;

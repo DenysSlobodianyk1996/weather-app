@@ -6,35 +6,40 @@
           :class="{
             active: viewMode === 'day'
           }"
-          @click="setViewMode('day')">Day</Button>
+          @click="setViewMode('day')">{{ t('viewMode.day') }}</Button>
         <Button
           :class="{
             active: viewMode === 'week'
           }"
-          @click="setViewMode('week')">Week</Button>
+          @click="setViewMode('week')">{{ t('viewMode.week') }}</Button>
       </div>
       <slot name="cityDetails"></slot>
     </div>
 
-    <div class="city-weather__days-list">
-      <div class="days-list__tabs">
-        <template v-if="viewMode === 'day'">
-          <Button class="active">{{ selectedDate }}</Button>
-        </template>
-        <template v-else>
-          <template v-for="day in weatherForecastDays" :key="day">
-            <Button 
-              :class="{
-                active: selectedDate === day
-              }"
-              @click="selectDay(day)">{{ day }}</Button>
+    <template v-if="weather5Days3HoursForecastLoading">
+      <Skeleton height="560px" />
+    </template>
+    <template v-else>
+      <div class="city-weather__days-list">
+        <div class="days-list__tabs">
+          <template v-if="viewMode === 'day'">
+            <Button class="active">{{ selectedDate }}</Button>
           </template>
+          <template v-else>
+            <template v-for="day in weatherForecastDays" :key="day">
+              <Button 
+                :class="{
+                  active: selectedDate === day
+                }"
+                @click="selectDay(day)">{{ day }}</Button>
+            </template>
+          </template>
+        </div>
+        <template v-if="selectedDateWeatherForecast.length">
+          <DayWeatherSummary :selectedDateWeatherForecast="selectedDateWeatherForecast" />
         </template>
       </div>
-      <template v-if="selectedDateWeatherForecast.length">
-        <DayWeatherSummary :selectedDateWeatherForecast="selectedDateWeatherForecast" />
-      </template>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -44,11 +49,17 @@
   import type { WeatherViewMode } from '../../models';
   import type { WeatherList } from '@/models';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
+  import Skeleton from '@/components/base/Skeleton.vue';
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
 
   const props = defineProps<{
-    weather5Days3HoursForecast: WeatherList[] | null
+    weather5Days3HoursForecast: WeatherList[] | null,
+    weather5Days3HoursForecastLoading: boolean
   }>()
   const weather5Days3HoursForecast = computed(() => props.weather5Days3HoursForecast);
+  const weather5Days3HoursForecastLoading = computed(() => props.weather5Days3HoursForecastLoading);
 
   const weatherForecastGroupByDays = computed(() => {
     const groupedList: Record<string, WeatherList[]> = {};

@@ -2,9 +2,9 @@ export interface WeatherList {
   dt: number
   main: Main
   weather: Weather[]
-  clouds: Clouds
+  // clouds: Clouds
   wind: Wind
-  rain?: Rain
+  // rain?: Rain
   dt_txt: string
   visibility: number
   dt_txt_day?: string // mapped on FE
@@ -27,9 +27,9 @@ export interface Weather {
   icon: string
 }
 
-export interface Clouds {
-  all: number
-}
+// export interface Clouds {
+//   all: number
+// }
 
 export interface Wind {
   speed: number
@@ -37,4 +37,4 @@ export interface Wind {
   gust: number
 }
 
-export type Rain = Record<string, number>
+// export type Rain = Record<string, number>

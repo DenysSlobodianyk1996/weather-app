@@ -13,7 +13,7 @@
           <span class="material-icons">my_location</span>
         </Button>
       </div>
-      <small>Please type at least {{ MIN_SEARCH_CHARACTERS }} characters</small>
+      <small>{{ t('message.typeAtLeastNCharacters', { n: MIN_SEARCH_CHARACTERS }) }}</small>
     </div>
     <template v-if="searchResultsVisible">
       <ul class="search-city__results">
@@ -23,7 +23,7 @@
           </li>
         </template>
         <template v-else-if="!citiesSearchResult.length">
-          <li>No results found</li>
+          <li>{{ t('message.noData') }}</li>
         </template>
         <template v-else>
           <template v-for="proposedCity in citiesSearchResult" :key="proposedCity.place_id">
@@ -47,7 +47,7 @@
   import { MIN_SEARCH_CHARACTERS } from '@/static';
   import { useI18n } from 'vue-i18n';
 
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
 
   const citySearchText = ref('');
   const citySearchLoading = ref(false);

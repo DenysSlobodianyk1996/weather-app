@@ -6,7 +6,6 @@
 
       <Button
         id="change-language"
-        :title="t('app.toggleLanguage')"
         @click="changeLanguage"
       >
         <span class="material-icons">language</span>

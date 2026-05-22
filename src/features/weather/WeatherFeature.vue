@@ -5,12 +5,12 @@
         :class="{
           active: weatherTabMode === 'main'
         }"
-        @click="setTabMode('main')">Main ({{ cityCards.length }})</Button>
+        @click="setTabMode('main')">{{ t('viewMode.main') }} ({{ cityCards.length }})</Button>
       <Button
         :class="{
           active: weatherTabMode === 'favorite'
         }"
-        @click="setTabMode('favorite')">Favorite ({{ favoriteCityCards.length }})</Button>
+        @click="setTabMode('favorite')">{{ t('viewMode.favorite') }} ({{ favoriteCityCards.length }})</Button>
    </div>
 
     <template v-if="weatherTabMode === 'main'">
@@ -40,6 +40,9 @@
   import { FAVORITE_CITIES_KEY, MAX_CITY_CARDS_AMOUNT } from '@/static';
   import type { LocationModel } from '@/models';
   import Button from '@/components/base/Button.vue';
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
 
   const cityCards = ref<CityCardModel[]>([]);
   const favoriteCityCards = computed<CityCardModel[]>(() => cityCards.value.filter(item => item.isFavorite));
@@ -80,7 +83,7 @@
   // City cards CRUD
   function addCityCard() {
     if(cityCards.value.length === MAX_CITY_CARDS_AMOUNT) {
-      console.error('Max amount of cards')
+      alert(t('message.maxCards'));
       return;
     }
     const newCityCard: CityCardModel = {
@@ -91,7 +94,6 @@
   function updateCityCard(updatedCityCard: CityCardModel) {
     const cardIndex = cityCards.value.findIndex(item => item.id === updatedCityCard.id);
     if(cardIndex === -1) {
-      console.error('Card wasn\'t found');
       return;
     }
     const cityCardsCopy = [...cityCards.value];
@@ -100,7 +102,6 @@
   }
   function removeCityCard(id: number) {
     if(cityCards.value.length === 1) {
-      console.error('Min amount of cards');
       return;
     }
     cityCards.value = cityCards.value.filter(item => item.id !== id);

@@ -7,8 +7,8 @@
   <dialog :id="id" ref="dialog">
     <slot name="dialogContent"></slot>
     <div class="dialog-actions">
-      <Button @click="closeDialog">Cancel</Button>
-      <Button @click="emit('confirm'); closeDialog">Confirm</Button>
+      <Button @click="closeDialog">{{ t('dialog.cancel') }}</Button>
+      <Button @click="emit('confirm'); closeDialog">{{ t('dialog.confirm') }}</Button>
     </div>
   </dialog>
 </template>
@@ -16,6 +16,9 @@
 <script setup lang="ts">
   import { computed, useTemplateRef } from 'vue';
   import Button from './Button.vue';
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
 
   const props = defineProps<{
     id: string

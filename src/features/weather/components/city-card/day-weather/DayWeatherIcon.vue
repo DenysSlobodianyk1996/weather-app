@@ -1,5 +1,8 @@
 <template>
-  <img :src="iconSrc" :alt="alt" />
+  <div>
+    <img :src="iconSrc" :alt="alt" />
+    <p>{{ alt }}</p>
+  </div>
 </template>
 
 <script setup lang="ts">

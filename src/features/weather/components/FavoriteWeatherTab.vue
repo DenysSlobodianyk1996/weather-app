@@ -8,7 +8,7 @@
       />
     </template>
     <template v-if="favoriteCityCards.length === 0">
-      <p class="no-data">No Favorites</p>
+      <p class="no-data">{{ t('message.noData') }}</p>
     </template>
   </div>
 </template>
@@ -17,7 +17,9 @@
   import { computed } from 'vue';
   import type { CityCardModel } from '../models';
   import CityCard from './city-card/CityCard.vue';
+  import { useI18n } from 'vue-i18n';
 
+  const { t } = useI18n();
   const props = defineProps<{
     favoriteCityCards: CityCardModel[]
   }>()

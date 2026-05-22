@@ -20,8 +20,6 @@ const cityDetailsCache = new Map<string, SearchCitiesResultModel>();
 export const GeoapifyApiService = {
   getIpLocation() {
     const url = 'ipinfo';
-    return Promise.resolve<LocationModel>({lat: 49.8004, lon: 30.1285});
-  
     if(!!ipLocationCache) {
       return Promise.resolve(ipLocationCache!);
     }
@@ -32,7 +30,7 @@ export const GeoapifyApiService = {
       const ipLocation = { lat, lon };
       ipLocationCache = ipLocation;
       return ipLocation;
-    })
+    });
   },
 
   getCityDetails(request: CityDetailsRequest) {
