@@ -92,19 +92,18 @@
 
 <script setup lang="ts">
   import type { WeatherList } from '@/models';
-  import { computed, onMounted, ref, useTemplateRef, watch, nextTick } from 'vue';
+  import { computed, onMounted, useTemplateRef, watch } from 'vue';
   import DayWeatherIcon from './DayWeatherIcon.vue'
   import Chart from 'chart.js/auto';
-import { debounce } from '@/utils';
 
   const props = defineProps<{
     selectedDateWeatherForecast: WeatherList[]
   }>();
   const selectedDateWeatherForecast = computed(() => props.selectedDateWeatherForecast);
 
+  let chartObj: Chart | null = null;
   const canvasRef = useTemplateRef('chartCanvas');
-
-  const chartObj = ref<Chart | null>();
+  const chartContext = computed(() => canvasRef.value?.getContext('2d')!)
 
   const headCols = [
     { content: '', colspan: 1, time: [] }, // Description
@@ -113,8 +112,8 @@ import { debounce } from '@/utils';
     { content: 'Day', colspan: 2, time: ['12:00', '15:00'] },
     { content: 'Evening', colspan: 2, time: ['18:00', '21:00'] },
   ];
-  const timeKeys = headCols.flatMap(item => item.time);
 
+  const timeKeys = headCols.flatMap(item => item.time);
   const timeKeysForecastData = computed(() => {
     const currentSelectedDateWeatherForecast = selectedDateWeatherForecast.value;
     return timeKeys.map(timeItem => {
@@ -126,31 +125,30 @@ import { debounce } from '@/utils';
     });
   }); // array with lenght 8 always (timeKeys.lenght)
 
-  function generateBarChartData(timeKeysForecastData: {
-      time: string;
-      timeForecast?: WeatherList;
-  }[]) {
+  const chartData = computed(() => {
+    const currentTimeKeysForecastData = timeKeysForecastData.value;
     return {
-      labels: timeKeysForecastData.map(({time}) => time),
+      labels: currentTimeKeysForecastData?.map(({time}) => time),
       datasets: [
         {
           label: 'Temperature by time',
-          data: timeKeysForecastData.map(({ timeForecast }) => {
+          data: currentTimeKeysForecastData.map(({ timeForecast }) => {
+            
             return !timeForecast
               ? 0
-              : timeForecast.main.temp
+              : timeForecast?.main?.temp ?? 0
           })
         }
       ]
     }
-  }
+  });
 
   onMounted(() => {
-    chartObj.value = new Chart(
-      canvasRef.value!,
+    chartObj = new Chart(
+      chartContext.value,
       {
         type: 'bar',
-        data: generateBarChartData(timeKeysForecastData.value),
+        data: chartData.value,
         options: {
           responsive: true,
           plugins: {
@@ -167,22 +165,16 @@ import { debounce } from '@/utils';
     );
   });
 
-  const createChart = debounce(async (newTimeKeysForecastData) => {
-    await nextTick()
-
-    const { datasets, labels } = generateBarChartData(newTimeKeysForecastData);
-    
-    chartObj.value!.data.datasets = datasets;
-    chartObj.value!.data.labels = labels;
-
-    chartObj.value!.update()
-    await nextTick()
-  }, 250)
-
   watch(
-    () => timeKeysForecastData.value,
-    async newTimeKeysForecastData => {
-      await createChart(newTimeKeysForecastData)
+    () => chartData.value,
+    (newChartData) => {
+      if(!chartObj || !newChartData) {
+        return;
+      }
+      const { labels, datasets  } = newChartData;
+      chartObj!.data.datasets = datasets;
+      chartObj!.data.labels = labels;
+      chartObj!.update();
     },
   );
 </script>
