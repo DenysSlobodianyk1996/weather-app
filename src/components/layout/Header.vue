@@ -16,13 +16,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import ContentContainer from '../base/ContentContainer.vue'
   import Button from '../base/Button.vue'
 
   const { t, locale, availableLocales } = useI18n()
-  const logoSrc = ref('/weather.png')
+  const baseUrl = import.meta.env.BASE_URL
+  const logoSrc = `${baseUrl}weather.png`;
 
   function changeLanguage (): void {
     const currentLangIndex = availableLocales.indexOf(locale.value)
