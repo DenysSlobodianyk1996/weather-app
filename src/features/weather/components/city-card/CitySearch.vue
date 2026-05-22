@@ -4,7 +4,7 @@
       <div class="input-with-addon">
         <input
           id="search-input"
-          placeholder="Search city"
+          :placeholder="t('message.searchCity')"
           ref="searchInput"
           type="text"
           @focus="citySearchFocused = true"

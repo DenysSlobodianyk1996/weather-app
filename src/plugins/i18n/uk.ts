@@ -10,7 +10,8 @@ export default {
     deleteThisCard: 'Ви хочете видалити цю картку?',
     typeAtLeastNCharacters: 'Будь ласка, введіть щонайменше {n} символів',
     noData: 'Немає даних',
-    maxCards: 'Максимальна кількість карток'
+    maxCards: 'Максимальна кількість карток',
+    searchCity: 'Знайти місто'
   },
   weather: {
     temperature: 'Температура',

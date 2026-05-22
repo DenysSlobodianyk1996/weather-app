@@ -10,7 +10,8 @@ export default {
     deleteThisCard: 'Do you want to delete this card?',
     typeAtLeastNCharacters: 'Please type at least {n} characters',
     noData: 'No Data',
-    maxCards: 'Max amount of cards'
+    maxCards: 'Max amount of cards',
+    searchCity: 'Search city'
   },
   weather: {
     temperature: 'Temperature',
