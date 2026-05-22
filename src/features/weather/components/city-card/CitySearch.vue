@@ -9,19 +9,21 @@
           type="text"
           @focus="citySearchFocused = true"
           v-model="citySearchText" />
-        <button id="my-location" @click="selectMyLocation">
+        <Button @click="selectMyLocation">
           <span class="material-icons">my_location</span>
-        </button>
+        </Button>
       </div>
       <small>Please type at least {{ MIN_SEARCH_CHARACTERS }} characters</small>
     </div>
     <template v-if="searchResultsVisible">
       <ul class="search-city__results">
         <template v-if="citySearchLoading">
-          <li class="loading">Loading...</li>
+          <li>
+            <Skeleton height="18.5px" />
+          </li>
         </template>
         <template v-else-if="!citiesSearchResult.length">
-          <li class="no-results">No results found</li>
+          <li>No results found</li>
         </template>
         <template v-else>
           <template v-for="proposedCity in citiesSearchResult" :key="proposedCity.place_id">
@@ -36,6 +38,8 @@
 </template>
 
 <script setup lang="ts">
+  import Skeleton from '@/components/base/Skeleton.vue';
+  import Button from '@/components/base/Button.vue';
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import { debounce, useClickOutside } from '@/utils';
   import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
@@ -137,23 +141,13 @@
           padding: 8px;
           margin: 4px 0;
         }
-
-        button[id="my-location"] {
-          all: unset;
-          padding: 4px;
-          border-radius: 4px;
-          cursor: pointer;
-          &:hover {
-            background-color: rgba($color: #eee, $alpha: .8);
-          }
-        }
       }
     }
 
     &__results {
       position: absolute;
       top: 100%;
-      background: #ddd;
+      background: #eee;
       max-height: 300px;
       overflow-y: auto;
       box-sizing: border-box;
@@ -164,16 +158,14 @@
       padding: 0;
       z-index: 2;
 
-      .loading,
-      .no-results,
-      .result-item {
+      li {
         padding: 8px;
-      }
 
-      .result-item {
-        cursor: pointer;
-        &:hover {
-          background-color: #eee;
+        &.result-item {
+          cursor: pointer;
+          &:hover {
+            background-color: #ddd;
+          }
         }
       }
     }

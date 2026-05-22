@@ -1,6 +1,6 @@
 <template>
   <template v-if="loading">
-    <p>Loading...</p>
+    <Skeleton height="18.5px" />
   </template>
   <template v-else>
     <p>{{ cityDetails?.cityLabel }}</p>
@@ -8,6 +8,7 @@
 </template>
 
 <script setup lang="ts">
+  import Skeleton from '@/components/base/Skeleton.vue';
   import type { CityDetailsRequest, LocationModel, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
   import { ref, watch } from 'vue';
@@ -55,7 +56,4 @@
 </script>
 
 <style lang="scss" scoped>
-  .city-details {
-
-  }
 </style>

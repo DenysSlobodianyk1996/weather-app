@@ -2,7 +2,7 @@
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    padding: 8px;
+    padding: 8px 0;
   }
   .tab-cards {
     display: flex;
@@ -16,12 +16,13 @@
     }
 
     .city-card {
-      width: calc(50% - 8px);
+      width: 100%;
+      // width: calc(50% - 8px);
       box-sizing: border-box;
 
-      @media screen and (max-width: 768px) {
-        width: 100%;
-      }
+      // @media screen and (max-width: 992px) {
+      //   width: 100%;
+      // }
     }
   }
   

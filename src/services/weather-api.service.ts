@@ -1,4 +1,4 @@
-import type { ForcastRequestModel, WeatherModel } from '@/models';
+import type { ForcastRequestModel, WeatherList } from '@/models';
 import axios from 'axios'
 
 const openweathermapApi = axios.create({
@@ -20,14 +20,8 @@ export const WeatherApiService = {
       ...request,
       units: 'metric'
     }
-    // return openweathermapApi.get<WeatherModel>(url, {params}).then(res => res.data)
 
-
-    return Promise.resolve({
-    "cod": "200",
-    "message": 0,
-    "cnt": 40,
-    "list": [
+    const result = [
         {
             "dt": 1779386400,
             "main": {
@@ -1486,21 +1480,23 @@ export const WeatherApiService = {
             },
             "dt_txt": "2026-05-26 15:00:00"
         }
-    ],
-    "city": {
-        "id": 712165,
-        "name": "Bila Tserkva",
-        "coord": {
-            "lat": 49.8004,
-            "lon": 30.1285
-        },
-        "country": "UA",
-        "population": 199163,
-        "timezone": 10800,
-        "sunrise": 1779329227,
-        "sunset": 1779385517
-    }
-})
-    // return Promise.resolve({})
+    ];
+    // return openweathermapApi.get(url, {params}).then(res => res.data?.list.map((item: any) => {
+    //     const dtTxtSplitted = item.dt_txt.split(' ');
+    //     return {
+    //         ...item,
+    //         dt_txt_day: dtTxtSplitted.at(0),
+    //         dt_txt_time: dtTxtSplitted.at(1)
+    //     } as WeatherList
+    // }));
+
+    return Promise.resolve(result.map(item => {
+        const dtTxtSplitted = item.dt_txt.split(' ');
+        return {
+            ...item,
+            dt_txt_day: dtTxtSplitted.at(0),
+            dt_txt_time: dtTxtSplitted.at(1)
+        } as WeatherList
+    }));
   }
 }

@@ -1,30 +1,44 @@
 <template>
   <div class="city-card">
-    <div class="city-card__toolbar">
-      <CitySearch @select="selectCity($event)" />
-      <div class="toolbar-actions">
-        <template v-if="!hideRemove">
-          <button
-            class="city-card__delete"
-            @click="emit('remove', cityCard.id)">
-            <span class="material-icons">delete_outline</span>
-          </button>
-        </template>
-        <template v-if="!!cityLocation">
-          <!-- Add to favorite if only city location is selected -->
-          <button class="city-card__favorite" @click="toggleFavorite">
-            <span class="material-icons">{{ toggleFavoriteIcon }}</span>
-          </button>
-        </template>
+    <template v-if="!hideToolbar">
+      <div class="city-card__toolbar">
+        <CitySearch @select="selectCity($event)" />
+        <div class="toolbar-actions">
+          <template v-if="!hideRemove">
+            <ConfirmDialog
+              id="remove-card" 
+              @confirm="emit('remove', cityCard.id)">
+              <template #dialogActivator="{props: activatorPros}">
+                <Button
+                  v-bind="activatorPros"
+                  class="city-card__delete">
+                  <span class="material-icons">delete_outline</span>
+                </Button>
+              </template>
+              <template #dialogContent>
+                <h3>Do you want to delete this card?</h3>
+              </template>
+            </ConfirmDialog>
+          </template>
+          <template v-if="!!cityLocation">
+            <!-- Add to favorite if only city location is selected -->
+            <Button
+              class="city-card__favorite"
+              @click="toggleFavorite">
+              <span class="material-icons">{{ toggleFavoriteIcon }}</span>
+            </Button>
+          </template>
+        </div>
       </div>
-    </div>
+    </template>
 
     <template v-if="!!cityLocation">
-      <CityDetails :cityLocation="cityLocation" />
-
-      <CityWeather class="city-card__weather" />
-
-      <CityDayTemperature class="city-card__day-temperature" />
+      <CityWeather
+        :weather5Days3HoursForecast="weather5Days3HoursForecast">
+        <template #cityDetails>
+          <CityDetails  :cityLocation="cityLocation" />
+        </template>
+      </CityWeather>
     </template>
     <template v-else>
       <p>Please select city</p>
@@ -35,21 +49,24 @@
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
   import type { CityCardModel } from '../../models';
-  import type { ForcastRequestModel, LocationModel, SearchCitiesResultModel, WeatherModel } from '@/models';
+  import type { ForcastRequestModel, LocationModel, WeatherList } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
   import CitySearch from './CitySearch.vue'
-  import CityDayTemperature from './CityDayTemperature.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
+  import ConfirmDialog from '@/components/base/ConfirmDialog.vue';
+  import Button from '@/components/base/Button.vue';
 
   const { locale } = useI18n()
   const props = defineProps<{
     hideRemove?: boolean,
+    hideToolbar?: boolean,
     cityCard: CityCardModel
   }>();
   const cityCard = computed(() => props.cityCard);
   const hideRemove = computed(() => props.hideRemove);
+  const hideToolbar = computed(() => props.hideToolbar);
   const cityLocation = computed(() => cityCard.value.cityLocation);
 
   const toggleFavoriteIcon = computed(() => {
@@ -64,7 +81,7 @@
     remove: [id: number]
   }>();
 
-  const weather5Days3HoursForecast = ref<WeatherModel | null>(null);
+  const weather5Days3HoursForecast = ref<WeatherList[] | null>(null);
 
   function toggleFavorite() {
     const newIsFavorite = !cityCard.value.isFavorite;
@@ -78,8 +95,7 @@
   function loadWeatherByLocation(request: ForcastRequestModel) {
      WeatherApiService.get5Days3HoursForecast(request)
       .then(weather => {
-        console.log('get5Days3hoursForecast', weather);
-        weather5Days3HoursForecast.value = weather
+        weather5Days3HoursForecast.value = weather;
       })
   }
 
@@ -134,18 +150,6 @@
         display: flex;
         align-items: center;
         gap: 4px;
-
-        button {
-          all: unset;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          border-radius: 4px;
-          padding: 4px;
-          &:hover {
-            background-color: rgba($color: #eee, $alpha: .8);
-          }
-        }
       }
     }
 

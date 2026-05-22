@@ -1,16 +1,16 @@
 <template>
   <div class="wheather-feature">
     <div class="wheather-feature__tabs">
-      <button
+      <Button
         :class="{
           active: weatherTabMode === 'main'
         }"
-        @click="setTabMode('main')">Main</button>
-      <button
+        @click="setTabMode('main')">Main ({{ cityCards.length }})</Button>
+      <Button
         :class="{
           active: weatherTabMode === 'favorite'
         }"
-        @click="setTabMode('favorite')">Favorite</button>
+        @click="setTabMode('favorite')">Favorite ({{ favoriteCityCards.length }})</Button>
    </div>
 
     <template v-if="weatherTabMode === 'main'">
@@ -31,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
   import type { CityCardModel, WeatherTabMode } from './models';
   import MainWeatherTab from './components/MainWeatherTab.vue';
   import FavoriteWeatherTab from './components/FavoriteWeatherTab.vue';
@@ -40,8 +39,7 @@
   import { generateId } from '@/utils';
   import { FAVORITE_CITIES_KEY, MAX_CITY_CARDS_AMOUNT } from '@/static';
   import type { LocationModel } from '@/models';
-
-  const { t } = useI18n()
+  import Button from '@/components/base/Button.vue';
 
   const cityCards = ref<CityCardModel[]>([]);
   const favoriteCityCards = computed<CityCardModel[]>(() => cityCards.value.filter(item => item.isFavorite));
@@ -88,7 +86,7 @@
     const newCityCard: CityCardModel = {
       id: generateId()
     };
-    cityCards.value.push(newCityCard)
+    cityCards.value.unshift(newCityCard)
   }
   function updateCityCard(updatedCityCard: CityCardModel) {
     const cardIndex = cityCards.value.findIndex(item => item.id === updatedCityCard.id);
@@ -133,14 +131,7 @@
 
     &__tabs {
       button {
-        all: unset;
-        border-radius: 4px;
-        cursor: pointer;
         padding: 8px 16px;
-        background: rgba($color: #ddd, $alpha: .4);
-        &.active {
-          background: #ddd;
-        }
       }
     }
   }

@@ -1,8 +1,10 @@
 <template>
   <div class="tab-toolbar">
-    <button class="add-action" @click="emit('add')">
+    <Button
+      class="add-action"
+      @click="emit('add')">
       <span class="material-icons">add_circle</span>
-    </button>
+    </Button>
   </div>
   <div class="tab-cards">
     <template v-for="cityCard in cityCards" :key="cityCard.id">
@@ -20,6 +22,7 @@
   import { computed } from 'vue';
   import type { CityCardModel } from '../models';
   import CityCard from './city-card/CityCard.vue';
+  import Button from '@/components/base/Button.vue';
 
   const props = defineProps<{
     cityCards: CityCardModel[]
@@ -38,9 +41,8 @@
   @use './shared-tab-styles.scss';
 
   .add-action {
-    all: unset;
+    background-color: transparent;
     color: rgba($color: green, $alpha: .8);
-    cursor: pointer;
     &:hover {
       color: green;
     }

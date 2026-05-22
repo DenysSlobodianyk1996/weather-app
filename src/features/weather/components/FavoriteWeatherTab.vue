@@ -3,7 +3,7 @@
     <template v-for="cityCard in favoriteCityCards" :key="cityCard.id">
       <CityCard
         :city-card="cityCard"
-        :hideRemove="true"
+        :hideToolbar="true"
         @update="emit('update', $event)"
       />
     </template>
@@ -30,4 +30,8 @@
 
 <style lang="scss" scoped>
   @use './shared-tab-styles.scss';
+
+  .tab-cards {
+    margin-top: 56px;
+  }
 </style>
