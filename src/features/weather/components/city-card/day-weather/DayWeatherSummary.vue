@@ -152,6 +152,7 @@ import { debounce } from '@/utils';
         type: 'bar',
         data: generateBarChartData(timeKeysForecastData.value),
         options: {
+          responsive: true,
           plugins: {
             tooltip: {
               callbacks: {
@@ -165,7 +166,6 @@ import { debounce } from '@/utils';
       }
     );
   });
-
 
   const createChart = debounce(async (newTimeKeysForecastData) => {
     await nextTick()
@@ -210,10 +210,7 @@ import { debounce } from '@/utils';
 
     &__chart-wrapper {
       width: 100%;
-      canvas {
-        width: 100%;
-      }
+      height: 300px;
     }
-
   }
 </style>
