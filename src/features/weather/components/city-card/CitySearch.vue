@@ -76,7 +76,11 @@
   function selectMyLocation() {
     GeoapifyApiService.getIpLocation()
       .then(ipLocation => {
-        emit('select', ipLocation);
+        if(ipLocation) {
+          emit('select', ipLocation);
+        } else {
+          alert(t('message.noData'))
+        }
       });
   }
 
