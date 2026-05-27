@@ -3,7 +3,7 @@
     <Skeleton height="18.5px" />
   </template>
   <template v-else>
-    <p>{{ cityDetails?.cityLabel }}</p>
+    <p>{{ cityDetails?.cityLabel ?? 'N/A' }}</p>
   </template>
 </template>
 

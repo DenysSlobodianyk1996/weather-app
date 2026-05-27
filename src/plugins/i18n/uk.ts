@@ -11,6 +11,7 @@ export default {
     typeAtLeastNCharacters: 'Будь ласка, введіть щонайменше {n} символів',
     noData: 'Немає даних',
     maxCards: 'Максимальна кількість карток',
+    maxFavoriteCards: 'Максимальна кількість улюблених карток',
     searchCity: 'Знайти місто'
   },
   weather: {

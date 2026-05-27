@@ -3,8 +3,8 @@
     <template v-for="cityCard in favoriteCityCards" :key="cityCard.id">
       <CityCard
         :city-card="cityCard"
-        :hideToolbar="true"
-        @update="emit('update', $event)"
+        :hide-favorite-action="true"
+        @remove="emit('remove', $event)"
       />
     </template>
     <template v-if="favoriteCityCards.length === 0">
@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { toRefs } from 'vue';
   import type { CityCardModel } from '../models';
   import CityCard from './city-card/CityCard.vue';
   import { useI18n } from 'vue-i18n';
@@ -22,11 +22,11 @@
   const { t } = useI18n();
   const props = defineProps<{
     favoriteCityCards: CityCardModel[]
-  }>()
-  const favoriteCityCards = computed(() => props.favoriteCityCards);
+  }>();
+  const { favoriteCityCards } = toRefs(props);
 
   const emit = defineEmits<{
-    update: [updatedCityCard: CityCardModel],
+    remove: [id: number],
   }>();
 </script>
 

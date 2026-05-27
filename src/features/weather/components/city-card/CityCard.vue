@@ -1,36 +1,34 @@
 <template>
   <div class="city-card">
-    <template v-if="!hideToolbar">
-      <div class="city-card__toolbar">
-        <CitySearch @select="selectCity($event)" />
-        <div class="toolbar-actions">
-          <template v-if="!hideRemove">
-            <ConfirmDialog
-              id="remove-card" 
-              @confirm="emit('remove', cityCard.id)">
-              <template #dialogActivator="{props: activatorPros}">
-                <Button
-                  v-bind="activatorPros"
-                  class="city-card__delete">
-                  <span class="material-icons">delete_outline</span>
-                </Button>
-              </template>
-              <template #dialogContent>
-                <h3>{{ t('message.deleteThisCard') }}</h3>
-              </template>
-            </ConfirmDialog>
-          </template>
-          <template v-if="!!cityLocation">
-            <!-- Add to favorite if only city location is selected -->
-            <Button
-              class="city-card__favorite"
-              @click="toggleFavorite">
-              <span class="material-icons">{{ toggleFavoriteIcon }}</span>
-            </Button>
-          </template>
-        </div>
+    <div class="city-card__toolbar">
+      <CitySearch @select="selectCity($event)" />
+      <div class="toolbar-actions">
+        <template v-if="!hideRemoveAction">
+          <ConfirmDialog
+            id="remove-card" 
+            @confirm="emit('remove', cityCard.id)">
+            <template #dialogActivator="{props: activatorPros}">
+              <Button
+                v-bind="activatorPros"
+                class="city-card__delete">
+                <span class="material-icons">delete_outline</span>
+              </Button>
+            </template>
+            <template #dialogContent>
+              <h3>{{ t('message.deleteThisCard') }}</h3>
+            </template>
+          </ConfirmDialog>
+        </template>
+        <template v-if="!!cityLocation && !hideFavoriteAction">
+          <!-- Add to favorite if only city location is selected -->
+          <Button
+            class="city-card__favorite"
+            @click="toggleFavorite">
+            <span class="material-icons">{{ toggleFavoriteIcon }}</span>
+          </Button>
+        </template>
       </div>
-    </template>
+    </div>
 
     <template v-if="!!cityLocation">
       <CityWeather
@@ -45,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue';
+  import { computed, ref, toRefs, watch } from 'vue';
   import type { CityCardModel } from '../../models';
   import type { ForcastRequestModel, LocationModel, WeatherList } from '@/models';
   import { useI18n } from 'vue-i18n';
@@ -59,24 +57,28 @@
   const { locale, t } = useI18n()
 
   const props = defineProps<{
-    hideRemove?: boolean,
-    hideToolbar?: boolean,
-    cityCard: CityCardModel
+    cityCard: CityCardModel,
+    hideRemoveAction?: boolean,
+    hideFavoriteAction?: boolean,
   }>();
-  const cityCard = computed(() => props.cityCard);
-  const hideRemove = computed(() => props.hideRemove);
-  const hideToolbar = computed(() => props.hideToolbar);
+
+  const {
+    cityCard,
+    hideRemoveAction,
+    hideFavoriteAction,
+  } = toRefs(props);
+
   const cityLocation = computed(() => cityCard.value.cityLocation);
+  const isFavorite = computed(() => cityCard.value.isFavorite);
 
   const toggleFavoriteIcon = computed(() => {
-    const isFavorite = cityCard.value.isFavorite;
-    return isFavorite
+    return isFavorite.value
       ? 'favorite'
       : 'favorite_border'
   });
 
   const emit = defineEmits<{
-    update: [updatedCityCard: CityCardModel],
+    update: [cityCard: CityCardModel],
     remove: [id: number]
   }>();
 
@@ -106,7 +108,8 @@
   function selectCity(newCityLocation: LocationModel) {
     const newCityCard: CityCardModel = {
       ...cityCard.value,
-      cityLocation: newCityLocation
+      cityLocation: newCityLocation,
+      isFavorite: false
     }
     emit('update', newCityCard)
   }
@@ -155,6 +158,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
+        margin-left: auto;
       }
     }
 

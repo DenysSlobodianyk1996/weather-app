@@ -11,6 +11,7 @@ export default {
     typeAtLeastNCharacters: 'Please type at least {n} characters',
     noData: 'No Data',
     maxCards: 'Max amount of cards',
+    maxFavoriteCards: 'Max amount of favorite cards',
     searchCity: 'Search city'
   },
   weather: {

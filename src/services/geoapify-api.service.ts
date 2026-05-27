@@ -6,13 +6,22 @@ const geoapifyApi = axios.create({
   baseURL: 'https://api.geoapify.com/v1',
   timeout: 2000,
 });
+
 geoapifyApi.interceptors.request.use(config => {
   if(!config.params) {
     config.params = {}
   }
   config.params.apiKey = import.meta.env.VITE_GEOAPIFY_KEY
   return config;
-})
+});
+
+geoapifyApi.interceptors.response.use(
+  res => res,
+  error => {
+    console.error('Interseptor error', error);
+    return Promise.reject(error);
+  }
+);
 
 let ipLocationCache: LocationModel | null = null;
 const cityDetailsCache = new Map<string, SearchCitiesResultModel>();
@@ -27,10 +36,14 @@ export const GeoapifyApiService = {
       const {
         latitude: lat, longitude: lon
       } = res.data?.location;
-      const ipLocation = { lat, lon };
+      const ipLocation = { lat, lon } as LocationModel;
+      return ipLocation;
+    })
+    .then(ipLocation => {
       ipLocationCache = ipLocation;
       return ipLocation;
-    });
+    })
+    .catch(() => undefined);
   },
 
   getCityDetails(request: CityDetailsRequest) {
@@ -50,9 +63,13 @@ export const GeoapifyApiService = {
       .then(res => {
         const resultProperties = res.data?.features?.[0]?.properties;
         const searchCitiesResult = getSearchCitiesResultModel(resultProperties)!;
+        return searchCitiesResult;
+      })
+      .then(searchCitiesResult => {
         cityDetailsCache.set(paramsString, searchCitiesResult);
         return searchCitiesResult;
       })
+      .catch(() => null);
   },
 
   searchCities(request: SearchCitiesRequest) {
@@ -68,7 +85,8 @@ export const GeoapifyApiService = {
           return searchCitiesResult;
         });
         return uniqueByProps(searchResult, ['lat', 'lon']) as SearchCitiesResultModel[];
-      });
+      })
+      .catch(() => []);
   }
 }
 

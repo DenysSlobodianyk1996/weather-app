@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, useTemplateRef } from 'vue';
+  import { toRefs, useTemplateRef } from 'vue';
   import Button from './Button.vue';
   import { useI18n } from 'vue-i18n';
 
@@ -22,8 +22,8 @@
 
   const props = defineProps<{
     id: string
-  }>()
-  const id = computed(() => props.id);
+  }>();
+  const { id } = toRefs(props);
 
   const emit = defineEmits<{
     confirm: []

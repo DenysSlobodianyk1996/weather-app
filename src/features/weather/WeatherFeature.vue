@@ -24,7 +24,7 @@
     <template v-else>
       <FavoriteWeatherTab
         :favoriteCityCards="favoriteCityCards"
-        @update="updateCityCard($event)"
+        @remove="removeFavoriteCityCard($event)"
       />
     </template>
   </div>
@@ -34,9 +34,9 @@
   import type { CityCardModel, WeatherTabMode } from './models';
   import MainWeatherTab from './components/MainWeatherTab.vue';
   import FavoriteWeatherTab from './components/FavoriteWeatherTab.vue';
-  import { computed, onMounted, ref, watch } from 'vue';
+  import { onMounted, ref, watch } from 'vue';
   import { GeoapifyApiService, StorageService } from '@/services';
-  import { generateId } from '@/utils';
+  import { generateId, isEqualLocation } from '@/utils';
   import { FAVORITE_CITIES_KEY, MAX_CITY_CARDS_AMOUNT } from '@/static';
   import type { LocationModel } from '@/models';
   import Button from '@/components/base/Button.vue';
@@ -45,7 +45,7 @@
   const { t } = useI18n();
 
   const cityCards = ref<CityCardModel[]>([]);
-  const favoriteCityCards = computed<CityCardModel[]>(() => cityCards.value.filter(item => item.isFavorite));
+  const favoriteCityCards = ref<CityCardModel[]>([]);
 
   // Tab mode logic
   const weatherTabMode = ref<WeatherTabMode>('main')
@@ -59,28 +59,29 @@
     const predefinedLocations = favoriteLocations?.length > 0 ? favoriteLocations : null;
 
     if(predefinedLocations?.length) {
-      // If we have favorite before - use this list as default state
-      const initCityCards: CityCardModel[] = predefinedLocations.map(cityLocation => ({
+      // Define Favorite list
+      const initFavoriteCityCards: CityCardModel[] = predefinedLocations.map(cityLocation => ({
         id: generateId(),
         cityLocation,
         isFavorite: true
       }));
-      cityCards.value = initCityCards;
-      return;
+      favoriteCityCards.value = initFavoriteCityCards;
     }
 
-    // If no favorite before - setup first card with city by IP
     GeoapifyApiService.getIpLocation()
       .then(ipLocation => {
-        const cityCard: CityCardModel = {
+        // Load ip location. If it was in favorite - use same obj values.
+        const ipLocationCityCardInFavorite = favoriteCityCards.value.find(item => isEqualLocation(item.cityLocation!, ipLocation))
+        const initCityCard: CityCardModel = ipLocationCityCardInFavorite ?? {
           id: generateId(),
-          cityLocation: ipLocation
+          cityLocation: ipLocation,
+          isFavorite: false
         };
-        cityCards.value = [cityCard]
+        cityCards.value = [initCityCard]
       });
   }
 
-  // City cards CRUD
+  // Main tab city cards logic
   function addCityCard() {
     if(cityCards.value.length === MAX_CITY_CARDS_AMOUNT) {
       alert(t('message.maxCards'));
@@ -89,22 +90,72 @@
     const newCityCard: CityCardModel = {
       id: generateId()
     };
-    cityCards.value.unshift(newCityCard)
+    cityCards.value = [
+      newCityCard,
+      ...cityCards.value
+    ];
   }
-  function updateCityCard(updatedCityCard: CityCardModel) {
-    const cardIndex = cityCards.value.findIndex(item => item.id === updatedCityCard.id);
+  function updateCityCard(changedCityCard: CityCardModel) {
+    const cardIndex = cityCards.value.findIndex(item => item.id === changedCityCard.id);
     if(cardIndex === -1) {
       return;
     }
     const cityCardsCopy = [...cityCards.value];
-    cityCardsCopy[cardIndex] = updatedCityCard;
-    cityCards.value = cityCardsCopy;
+    const oldCityCard = cityCardsCopy[cardIndex];
+
+    // Location changed
+    if(
+      (!oldCityCard.cityLocation && !!changedCityCard.cityLocation) ||
+      !isEqualLocation(oldCityCard.cityLocation!, changedCityCard.cityLocation!)
+    ) {
+      cityCardsCopy[cardIndex] = changedCityCard;
+      cityCards.value = cityCardsCopy;
+      return;
+    }
+
+    // Is favorite changed
+    if(oldCityCard.isFavorite !== changedCityCard.isFavorite) {
+      if(changedCityCard.isFavorite && favoriteCityCards.value.length === 5) {
+        alert(t('message.maxFavoriteCards'));
+        return;
+      }
+
+      // update main city cards list
+      cityCardsCopy[cardIndex] = changedCityCard;
+      cityCards.value = cityCardsCopy;
+
+      if(changedCityCard.isFavorite) {
+        // Add item to favorite list
+        favoriteCityCards.value = [
+          changedCityCard,
+          ...favoriteCityCards.value
+        ];
+      } else {
+        // Remove item to favorite list
+        favoriteCityCards.value = favoriteCityCards.value.filter(item => item.id !== changedCityCard.id);
+      }
+      return;
+    }
   }
   function removeCityCard(id: number) {
     if(cityCards.value.length === 1) {
       return;
     }
     cityCards.value = cityCards.value.filter(item => item.id !== id);
+  }
+
+  // Favorite tab city cards logic
+  function removeFavoriteCityCard(id: number) {
+    favoriteCityCards.value = favoriteCityCards.value.filter(item => item.id !== id);
+    
+    const favoriteCityCardInMain = cityCards.value.find(card => card.id === id);
+    if(!favoriteCityCardInMain) {
+      return;
+    }
+    updateCityCard({
+      ...favoriteCityCardInMain,
+      isFavorite: false
+    });
   }
 
   // Init component

@@ -10,7 +10,7 @@
     <template v-for="cityCard in cityCards" :key="cityCard.id">
       <CityCard
         :city-card="cityCard"
-        :hideRemove="cityCards.length <= 1"
+        :hide-remove-action="cityCards.length <= 1"
         @remove="emit('remove', $event)"
         @update="emit('update', $event)"
       />
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { toRefs } from 'vue';
   import type { CityCardModel } from '../models';
   import CityCard from './city-card/CityCard.vue';
   import Button from '@/components/base/Button.vue';
@@ -27,11 +27,11 @@
   const props = defineProps<{
     cityCards: CityCardModel[]
   }>();
-  const cityCards = computed(() => props.cityCards);
+  const { cityCards } = toRefs(props);
 
   const emit = defineEmits<{
     add: [],
-    update: [updatedCityCard: CityCardModel],
+    update: [cityCard: CityCardModel],
     remove: [id: number]
   }>();
 

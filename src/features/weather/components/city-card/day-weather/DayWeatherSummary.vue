@@ -85,17 +85,13 @@
         </tbody>
       </table>
     </div>
-    <div class="day-weather-summary__chart-wrapper">
-      <canvas ref="chartCanvas"></canvas>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import type { WeatherList } from '@/models';
-  import { computed, onMounted, useTemplateRef, watch } from 'vue';
+  import { computed, toRefs } from 'vue';
   import DayWeatherIcon from './DayWeatherIcon.vue'
-  import Chart from 'chart.js/auto';
   import { useI18n } from 'vue-i18n';
 
   const { t } = useI18n();
@@ -103,11 +99,7 @@
   const props = defineProps<{
     selectedDateWeatherForecast: WeatherList[]
   }>();
-  const selectedDateWeatherForecast = computed(() => props.selectedDateWeatherForecast);
-
-  let chartObj: Chart | null = null;
-  const canvasRef = useTemplateRef('chartCanvas');
-  const chartContext = computed(() => canvasRef.value?.getContext('2d')!)
+  const { selectedDateWeatherForecast } = toRefs(props);
 
   const headCols = [
     { content: '', colspan: 1, time: [] }, // Description
@@ -129,65 +121,10 @@
     });
   }); // array with lenght 8 always (timeKeys.lenght)
 
-  const chartData = computed(() => {
-    const currentTimeKeysForecastData = timeKeysForecastData.value;
-    return {
-      labels: currentTimeKeysForecastData?.map(({time}) => time),
-      datasets: [
-        {
-          label: t('weather.temperature'),
-          data: currentTimeKeysForecastData.map(({ timeForecast }) => {
-            
-            return !timeForecast
-              ? 0
-              : timeForecast?.main?.temp ?? 0
-          })
-        }
-      ]
-    }
-  });
-
-  onMounted(() => {
-    chartObj = new Chart(
-      chartContext.value,
-      {
-        type: 'bar',
-        data: chartData.value,
-        options: {
-          responsive: true,
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.parsed.y} °C`
-                }
-              }
-            }
-          }
-        }
-      }
-    );
-  });
-
-  watch(
-    () => chartData.value,
-    (newChartData) => {
-      if(!chartObj || !newChartData) {
-        return;
-      }
-      const { labels, datasets  } = newChartData;
-      chartObj!.data.datasets = datasets;
-      chartObj!.data.labels = labels;
-      chartObj!.update();
-    },
-  );
 </script>
 
 <style lang="scss" scoped>
   .day-weather-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
     margin-top: 16px;
 
     &__table-wrapper {
@@ -203,11 +140,6 @@
           }
         }
       }
-    }
-
-    &__chart-wrapper {
-      width: 100%;
-      height: 200px;
     }
   }
 </style>

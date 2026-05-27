@@ -38,6 +38,11 @@
         <template v-if="selectedDateWeatherForecast.length">
           <DayWeatherSummary :selectedDateWeatherForecast="selectedDateWeatherForecast" />
         </template>
+        <TemperatureChart
+          :selectedDate="selectedDate"  
+          :viewMode="viewMode"
+          :weather5Days3HoursForecast="weather5Days3HoursForecast"
+        />
       </div>
     </template>
   </div>
@@ -45,10 +50,11 @@
 
 <script setup lang="ts">
   import Button from '@/components/base/Button.vue';
-  import { computed, ref, watch } from 'vue';
+  import { computed, ref, toRefs, watch } from 'vue';
   import type { WeatherViewMode } from '../../models';
   import type { WeatherList } from '@/models';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
+  import TemperatureChart from './TemperatureChart.vue'
   import Skeleton from '@/components/base/Skeleton.vue';
   import { useI18n } from 'vue-i18n';
 
@@ -57,9 +63,11 @@
   const props = defineProps<{
     weather5Days3HoursForecast: WeatherList[] | null,
     weather5Days3HoursForecastLoading: boolean
-  }>()
-  const weather5Days3HoursForecast = computed(() => props.weather5Days3HoursForecast);
-  const weather5Days3HoursForecastLoading = computed(() => props.weather5Days3HoursForecastLoading);
+  }>();
+  const {
+    weather5Days3HoursForecast,
+    weather5Days3HoursForecastLoading
+  } = toRefs(props);
 
   const weatherForecastGroupByDays = computed(() => {
     const groupedList: Record<string, WeatherList[]> = {};
