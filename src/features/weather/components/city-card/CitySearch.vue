@@ -1,5 +1,5 @@
 <template>
-  <div ref="searchCityBoxRef" class="search-city">
+  <div ref="searchCityBoxRef" class="search-city" @focusout="onFocusOut">
     <label :for="inputId" class="sr-only">{{ t('message.searchCity') }}</label>
     <div class="search-city__field">
       <span class="material-icons search-city__icon" aria-hidden="true">search</span>
@@ -25,7 +25,8 @@
       class="search-city__hint"
       :class="{ 'sr-only': !hintVisible }"
     >{{ t('message.typeAtLeastNCharacters', { n: MIN_SEARCH_CHARACTERS }) }}</small>
-    <div v-if="searchResultsVisible" class="search-city__results">
+    <!-- mousedown would blur the input and close the list before a click picks a result. -->
+    <div v-if="searchResultsVisible" class="search-city__results" @mousedown.prevent>
       <div v-if="citySearchLoading" class="search-city__status" aria-busy="true">
         <Skeleton height="18.5px" />
       </div>
@@ -40,7 +41,6 @@
           :aria-selected="index === activeIndex"
           class="search-city__result"
           :class="{ 'search-city__result--active': index === activeIndex }"
-          @mousedown.prevent
           @mousemove="activeIndex = index"
           @click="pickCity(proposedCity)"
         >
@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
   import Skeleton from '@/components/base/Skeleton.vue';
-  import { computed, ref, useId, useTemplateRef, watch } from 'vue';
+  import { computed, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue';
   import { debounce, highlightMatch, useClickOutside } from '@/utils';
   import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
@@ -93,12 +93,22 @@
     select: [cityLocation: LocationModel]
   }>();
 
+  function closeSearch() {
+    citySearchFocused.value = false;
+    listOpen.value = false;
+  }
+
   // Handle click outside search city list
   const searchCityBoxRef = useTemplateRef('searchCityBoxRef');
-  useClickOutside(searchCityBoxRef, () => {
-    citySearchFocused.value = false
-    listOpen.value = false
-  });
+  useClickOutside(searchCityBoxRef, closeSearch);
+
+  // Tab (or anything else) moving focus out of the search box closes the list too.
+  function onFocusOut(event: FocusEvent) {
+    const next = event.relatedTarget;
+    if(!(next instanceof Node) || !searchCityBoxRef.value?.contains(next)) {
+      closeSearch();
+    }
+  }
 
   const searchResultsVisible = computed(() => {
     return citySearchFocused.value && listOpen.value && citySearchText.value?.length >= MIN_SEARCH_CHARACTERS;
@@ -126,6 +136,7 @@
 
   // Select Location logic
   function pickCity({lat, lon}: SearchCitiesResultModel) {
+    loadCitiesBySearch.cancel();
     emit('select', {lat, lon});
     citySearchText.value = '';
     listOpen.value = false;
@@ -171,6 +182,7 @@
     searchQueued.value = false;
     searchCities(request);
   }, 500);
+  onBeforeUnmount(() => loadCitiesBySearch.cancel());
 
    watch(
     () => locale.value,
@@ -185,6 +197,8 @@
       // Results for the old text must not show up while the new search waits for the debounce.
       resetSearch();
       if(lastCitySearchText?.length < MIN_SEARCH_CHARACTERS) {
+        // Too short now, or cleared by a pick: the search still waiting is no longer wanted.
+        loadCitiesBySearch.cancel();
         searchQueued.value = false;
         return;
       }

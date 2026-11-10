@@ -2,8 +2,10 @@ import type { CityDetailsRequest, LocationModel, SearchCitiesRequest, SearchCiti
 import { uniqueLocations } from '@/utils';
 import { request } from './request.service';
 
-// Geocoding answers don't change while the page is open.
+// The IP Location and a place's name don't change while the page is open.
 const GEOCODING_TTL_MS = Infinity;
+// Autocomplete answers are kept for a while only, so the cache doesn't grow with every word typed all day.
+const SEARCH_TTL_MS = 10 * 60 * 1000;
 
 export const GeoapifyApiService = {
   getIpLocation() {
@@ -39,7 +41,7 @@ export const GeoapifyApiService = {
         ...searchRequest,
         type: 'city',
       },
-      ttl: GEOCODING_TTL_MS,
+      ttl: SEARCH_TTL_MS,
       parse: raw => {
         const searchResult = raw.features.map(({ properties }: any) => getSearchCitiesResultModel(properties));
         return uniqueLocations(searchResult.filter(Boolean) as SearchCitiesResultModel[]);

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { FAVORITE_CITIES_KEY } from '@/static'
 import type { LocationModel } from '@/models'
+import { useCityCards } from './use-city-cards'
 import {
+  browserStorage,
   createCityCards,
   MAX_CITY_CARDS,
   MAX_FAVORITES,
@@ -358,5 +360,64 @@ describe('City cards module', () => {
     picked.lat = 0
 
     expect(cityCards.favorites()).toEqual([odesa])
+  })
+
+  describe('when storage fails', () => {
+    const quotaExceeded = () => { throw new DOMException('full', 'QuotaExceededError') }
+    const blocked = () => { throw new DOMException('blocked', 'SecurityError') }
+
+    it('starts with no Favorites when storage cannot be read', () => {
+      const cityCards = createCityCards({ getItem: blocked, setItem: () => {} })
+
+      expect(cityCards.favorites()).toEqual([])
+      expect(cityCards.cards()).toHaveLength(1)
+    })
+
+    it('keeps the cleaned Favorites when they cannot be written back on load', () => {
+      const storage: CityCardsStorage = {
+        getItem: () => JSON.stringify([kyiv, kyivAgain]),
+        setItem: quotaExceeded,
+      }
+
+      expect(createCityCards(storage).favorites()).toEqual([kyiv])
+    })
+
+    it('keeps the Favorites in memory when storage cannot be written', () => {
+      const cityCards = createCityCards({ getItem: () => null, setItem: quotaExceeded })
+      const id = cityCards.cards()[0].id
+      cityCards.setCardLocation(id, kyiv)
+
+      expect(cityCards.toggleFavorite(id)).toEqual({ ok: true, isFavorite: true })
+      expect(cityCards.favorites()).toEqual([kyiv])
+      expect(cityCards.cards()[0].isFavorite).toBe(true)
+
+      cityCards.removeFavorite(kyiv)
+      expect(cityCards.favorites()).toEqual([])
+    })
+
+    it('keeps the reactive cards and Favorites in sync when storage cannot be written', () => {
+      const cityCards = useCityCards({ getItem: () => null, setItem: quotaExceeded })
+      const id = cityCards.cards.value[0].id
+      cityCards.setCardLocation(id, kyiv)
+
+      cityCards.toggleFavorite(id)
+
+      expect(cityCards.favorites.value).toEqual([kyiv])
+      expect(cityCards.cards.value[0].isFavorite).toBe(true)
+    })
+
+    it('uses the browser storage when it can be reached', () => {
+      const { storage } = memoryStorage({ [FAVORITE_CITIES_KEY]: JSON.stringify([kyiv]) })
+
+      expect(browserStorage(() => storage)).toBe(storage)
+    })
+
+    it('falls back to storage in memory when the browser storage cannot be reached', () => {
+      const storage = browserStorage(blocked)
+      storage.setItem(FAVORITE_CITIES_KEY, '[]')
+
+      expect(storage.getItem(FAVORITE_CITIES_KEY)).toBe('[]')
+      expect(createCityCards(browserStorage(() => undefined as unknown as Storage)).favorites()).toEqual([])
+    })
   })
 })

@@ -1,19 +1,19 @@
 <template>
   <div class="current-conditions">
     <WeatherIcon
-      v-if="weather"
+      v-if="current && weather"
       :code="weather.icon"
       :description="weather.description"
       :size="64"
     />
-    <span class="current-conditions__temperature num">{{ formatTemperature(current.slot.main.temp) }}</span>
+    <span v-if="current" class="current-conditions__temperature num">{{ formatTemperature(current.slot.main.temp) }}</span>
     <div class="current-conditions__text">
       <!-- The city name. -->
       <slot></slot>
-      <span class="current-conditions__summary">
+      <span v-if="current" class="current-conditions__summary">
         <template v-if="weather">{{ weather.description }} · </template>{{ t('weather.feelsLikeValue', { value: formatTemperature(current.slot.main.feels_like) }) }}
       </span>
-      <span class="current-conditions__time num">
+      <span v-if="current" class="current-conditions__time num">
         {{ formatLocalDate(current.localTimestamp, locale) }} · {{ t('weather.localTime', { time: formatLocalTime(current.localTimestamp) }) }}
       </span>
     </div>
@@ -34,10 +34,11 @@
   const { t, locale } = useI18n();
 
   const props = defineProps<{
-    current: CurrentConditions
+    /** Null while the forecast loads or after it failed: only the city name shows. */
+    current: CurrentConditions | null
   }>();
 
-  const weather = computed(() => props.current.slot.weather?.[0]);
+  const weather = computed(() => props.current?.slot.weather?.[0]);
 </script>
 
 <style lang="scss" scoped>

@@ -41,4 +41,15 @@ describe('CurrentConditions', () => {
     expect(wrapper.text()).toContain('пн, 10 лист. · 14:20 за місцевим часом')
     expect(wrapper.text()).toContain('Відчувається як 4°')
   })
+
+  it('shows only the city name while there are no conditions', () => {
+    const wrapper = mount(CurrentConditions, {
+      props: { current: null },
+      slots: { default: '<h2>Kyiv, Ukraine</h2>' },
+      global: { plugins: [i18n] },
+    })
+
+    expect(wrapper.text()).toBe('Kyiv, Ukraine')
+    expect(wrapper.find('.current-conditions__temperature').exists()).toBe(false)
+  })
 })

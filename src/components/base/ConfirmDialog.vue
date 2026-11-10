@@ -43,8 +43,10 @@
     },
   };
 
+  // Close first: the confirmed action may remove this dialog (deleting a card does), and a closed
+  // dialog gives focus back before it goes. The owner moves focus on if the opener goes too.
   function confirm() {
-    emit('confirm');
     open.value = false;
+    emit('confirm');
   }
 </script>

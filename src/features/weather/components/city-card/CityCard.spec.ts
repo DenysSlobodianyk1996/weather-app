@@ -71,6 +71,65 @@ describe('CityCard', () => {
     expect(wrapper.text()).not.toContain('Loading forecast')
   })
 
+  it('loads the city name once while the forecast goes from loading to loaded', async () => {
+    const request = pending<RequestResult<ForecastModel>>()
+    vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockReturnValue(request.promise)
+    const wrapper = mountCard()
+    await flushPromises()
+    const heading = wrapper.find('.city-details__title').element
+
+    request.resolve(forecast)
+    await flushPromises()
+
+    expect(GeoapifyApiService.getCityDetails).toHaveBeenCalledTimes(1)
+    // The same heading element: the city name was not torn down and built again.
+    expect(wrapper.find('.city-details__title').element).toBe(heading)
+    expect(wrapper.find('.city-details__title').text()).toBe('Kyiv, Ukraine')
+  })
+
+  it('loads the city name once through a failed forecast and "Try again"', async () => {
+    const retry = pending<RequestResult<ForecastModel>>()
+    vi.spyOn(WeatherApiService, 'get5Days3HoursForecast')
+      .mockResolvedValueOnce(failed)
+      .mockReturnValueOnce(retry.promise)
+    const wrapper = mountCard()
+    await flushPromises()
+
+    await tryAgainButton(wrapper)!.trigger('click')
+    await flushPromises()
+    retry.resolve(forecast)
+    await flushPromises()
+
+    expect(GeoapifyApiService.getCityDetails).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('.city-details__title').text()).toBe('Kyiv, Ukraine')
+  })
+
+  it('shows the "Remove" button of a Favorite card while loading, loaded and failed', async () => {
+    const request = pending<RequestResult<ForecastModel>>()
+    vi.spyOn(WeatherApiService, 'get5Days3HoursForecast')
+      .mockReturnValueOnce(request.promise)
+      .mockResolvedValueOnce(failed)
+    const wrapper = mount(CityCard, {
+      props: { cityLocation: kyiv, variant: 'favorite', isFavorite: true },
+      global: { plugins: [i18n], stubs: { TemperatureChart: true } },
+      attachTo: document.body,
+    })
+    const removeButton = () => wrapper.findAll('button').filter(button => button.text().includes('Remove'))
+    await flushPromises()
+    expect(removeButton()).toHaveLength(1)
+
+    request.resolve(forecast)
+    await flushPromises()
+    expect(removeButton()).toHaveLength(1)
+
+    await wrapper.setProps({ cityLocation: { lat: 49.84, lon: 24.03 } })
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+    expect(removeButton()).toHaveLength(1)
+    await removeButton()[0].trigger('click')
+    expect(wrapper.emitted('remove')).toHaveLength(1)
+  })
+
   it('shows the error with "Try again" when the forecast fails', async () => {
     vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(failed)
     const wrapper = mountCard()

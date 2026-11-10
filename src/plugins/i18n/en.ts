@@ -44,6 +44,7 @@ export default {
     ok: 'OK',
   },
   cityCard: {
+    locationFailed: "Couldn't find your location. Try again or search for a city.",
     useMyLocation: 'Use my location',
     addToFavorites: 'Add to favorites',
     removeFromFavorites: 'Remove from favorites',

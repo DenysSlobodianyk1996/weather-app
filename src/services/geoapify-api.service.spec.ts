@@ -3,7 +3,8 @@ import MockAdapter from 'axios-mock-adapter'
 import { clearRequestCache, httpClient } from './request.service'
 import { GeoapifyApiService } from './geoapify-api.service'
 
-const DAY = 24 * 60 * 60 * 1000
+const MINUTE = 60 * 1000
+const DAY = 24 * 60 * MINUTE
 
 describe('GeoapifyApiService', () => {
   let mock: MockAdapter
@@ -125,14 +126,18 @@ describe('GeoapifyApiService', () => {
       expect(mock.history.get[0].params).toMatchObject({ text: 'ky', lang: 'en', type: 'city' })
     })
 
-    it('is cached for the life of the page', async () => {
+    it('is cached for 10 minutes, then searched again', async () => {
       mock.onGet('geocode/autocomplete').reply(200, { features: [] })
+      const search = { text: 'ky', lang: 'en' }
 
-      await GeoapifyApiService.searchCities({ text: 'ky', lang: 'en' })
-      vi.advanceTimersByTime(DAY)
-      await GeoapifyApiService.searchCities({ text: 'ky', lang: 'en' })
-
+      await GeoapifyApiService.searchCities(search)
+      vi.advanceTimersByTime(10 * MINUTE - 1)
+      await GeoapifyApiService.searchCities(search)
       expect(mock.history.get).toHaveLength(1)
+
+      vi.advanceTimersByTime(1)
+      await GeoapifyApiService.searchCities(search)
+      expect(mock.history.get).toHaveLength(2)
     })
 
     it('reports a failed search as an error result', async () => {

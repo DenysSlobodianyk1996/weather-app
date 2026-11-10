@@ -1,13 +1,15 @@
 <template>
   <div class="city-weather">
+    <!--
+      One header for every state: the city name (CityDetails, in the cityDetails slot) and the actions stay
+      mounted while the forecast loads, fails or arrives, so the name is loaded once and doesn't flicker.
+    -->
     <div class="city-weather__header">
-      <CurrentConditions v-if="!loading && shaped?.current" :current="shaped.current">
+      <CurrentConditions :current="loading || error ? null : shaped?.current ?? null">
         <slot name="cityDetails"></slot>
       </CurrentConditions>
-      <div v-else class="city-weather__details">
-        <slot name="cityDetails"></slot>
-      </div>
       <PillSwitch
+        v-if="!error"
         class="city-weather__view-mode"
         v-model="viewMode"
         :label="t('viewMode.label')"
@@ -19,6 +21,7 @@
     <template v-if="loading">
       <CityCardSkeleton :label="t('cityCard.loadingForecast')" />
     </template>
+    <ForecastError v-else-if="error" @retry="emit('retry')" />
     <template v-else-if="shaped">
       <div class="city-weather__forecast">
         <DayWeatherSummary v-if="viewMode === 'day'" :periods="shaped.today.periods" />
@@ -44,6 +47,7 @@
   import CityCardSkeleton from './CityCardSkeleton.vue';
   import CurrentConditions from './CurrentConditions.vue';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
+  import ForecastError from './ForecastError.vue'
   import FiveDayForecast from './FiveDayForecast.vue'
   import TemperatureChart from './TemperatureChart.vue'
 
@@ -52,6 +56,12 @@
   const props = defineProps<{
     forecast: ForecastModel | null,
     loading: boolean
+    /** The forecast failed: the error with "Try again" shows instead of it. */
+    error?: boolean
+  }>();
+
+  const emit = defineEmits<{
+    retry: []
   }>();
 
   // Ticks every minute, so the local clock and "today" move on while the card stays open.
@@ -100,11 +110,6 @@
       align-items: center;
       flex-wrap: wrap;
       gap: var(--space-4) var(--space-5);
-    }
-
-    &__details {
-      flex: 1 1 auto;
-      min-width: 0;
     }
 
     &__forecast {

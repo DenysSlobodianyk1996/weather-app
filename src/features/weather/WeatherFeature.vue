@@ -11,6 +11,7 @@
           {{ t('cityCards.counter', { n: cards.length, max: MAX_CITY_CARDS }) }}
         </span>
         <Button
+          :id="addCityId"
           variant="primary"
           class="weather-feature__add"
           @click="addCard"
@@ -37,7 +38,7 @@
         :loading-card-id="ipLocationLoading ? firstCardId : undefined"
         @select="cityCards.setCardLocation"
         @toggle-favorite="toggleFavorite"
-        @remove="cityCards.removeCard"
+        @remove="removeCard"
       />
       <FavoriteWeatherTab
         v-else
@@ -66,18 +67,19 @@
   import Button from '@/components/base/Button.vue';
   import { useAsyncData } from '@/composables';
   import { useI18n } from 'vue-i18n';
-  import { MAX_CITY_CARDS, MAX_FAVORITES } from './city-cards';
+  import { browserStorage, MAX_CITY_CARDS, MAX_FAVORITES } from './city-cards';
   import { useCityCards } from './use-city-cards';
 
   const { t } = useI18n();
 
   // All City card and Favorite rules live in the City cards module; this component only shows them.
-  const cityCards = useCityCards(localStorage);
+  const cityCards = useCityCards(browserStorage());
   const { cards, favorites } = cityCards;
   // The card the app starts with; the IP Location fills it.
   const firstCardId = cards.value[0].id;
 
   const tabsId = useId();
+  const addCityId = useId();
   const weatherTabMode = ref<WeatherTabMode>('main');
 
   const {
@@ -100,6 +102,17 @@
     if(!cityCards.addCard().ok) {
       limitModal.value = { limit: 'cards' };
     }
+  }
+
+  // The delete button that had focus goes away with its card, so focus moves to "Add city" instead of the page.
+  function removeCard(id: number) {
+    cityCards.removeCard(id);
+    nextTick(() => {
+      const active = document.activeElement;
+      if(!active || active === document.body || !active.isConnected) {
+        document.getElementById(addCityId)?.focus();
+      }
+    });
   }
 
   function toggleFavorite(id: number, cityName: string | undefined) {

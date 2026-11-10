@@ -19,6 +19,28 @@ export interface CityCardsStorage {
   setItem(key: string, value: string): void;
 }
 
+/**
+ * The browser's `localStorage`, or a storage in memory when the browser blocks it
+ * (reading the global can throw, e.g. with cookies off). Favorites then last until the page closes.
+ */
+export function browserStorage(
+  getStorage: () => CityCardsStorage | undefined = () => globalThis.localStorage,
+): CityCardsStorage {
+  try {
+    const storage = getStorage();
+    if(storage) {
+      return storage;
+    }
+  } catch {
+    // Fall through to the storage in memory.
+  }
+  const values = new Map<string, string>();
+  return {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => { values.set(key, value); },
+  };
+}
+
 export interface CityCard {
   id: number;
   cityLocation?: LocationModel;
@@ -153,6 +175,7 @@ const isLocation = (value: unknown): value is LocationModel =>
   Number.isFinite((value as LocationModel).lat) &&
   Number.isFinite((value as LocationModel).lon);
 
+// Storage that can't be read (blocked, or broken JSON) starts with no Favorites.
 function loadFavorites(storage: CityCardsStorage): LocationModel[] {
   let saved: unknown;
   try {
@@ -172,6 +195,11 @@ function loadFavorites(storage: CityCardsStorage): LocationModel[] {
   return favorites;
 }
 
+// A failed write (storage full or blocked) keeps the Favorites in memory; they are written again on the next change.
 function saveFavorites(storage: CityCardsStorage, favorites: LocationModel[]) {
-  storage.setItem(FAVORITE_CITIES_KEY, JSON.stringify(favorites.map(toLocation)));
+  try {
+    storage.setItem(FAVORITE_CITIES_KEY, JSON.stringify(favorites.map(toLocation)));
+  } catch {
+    // Nothing to do: the in-memory Favorites stay the truth for this page.
+  }
 }

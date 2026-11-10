@@ -148,4 +148,60 @@ describe('CityCardToolbar', () => {
 
     expect(wrapper.emitted('select')).toEqual([[{ lat: 50.45, lon: 30.52 }]])
   })
+
+  describe('when "Use my location" fails', () => {
+    function failLookup() {
+      vi.spyOn(GeoapifyApiService, 'getIpLocation')
+        .mockResolvedValue({ ok: false, error: { kind: 'network', message: 'Network Error' } })
+    }
+
+    it('says so next to the toolbar instead of alert()', async () => {
+      const alert = vi.fn()
+      vi.stubGlobal('alert', alert)
+      failLookup()
+      const wrapper = mountToolbar()
+
+      await wrapper.find(byLabel('Use my location')).trigger('click')
+      await flushPromises()
+
+      try {
+        expect(alert).not.toHaveBeenCalled()
+        expect(wrapper.emitted('select')).toBeUndefined()
+        expect(wrapper.find('[role="alert"]').text())
+          .toContain("Couldn't find your location. Try again or search for a city.")
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('says it in Ukrainian too', async () => {
+      failLookup()
+      i18n.global.locale.value = 'uk'
+      try {
+        const wrapper = mountToolbar()
+        await wrapper.find(byLabel('Моє місцезнаходження')).trigger('click')
+        await flushPromises()
+
+        expect(wrapper.find('[role="alert"]').text())
+          .toContain('Не вдалося визначити ваше місцезнаходження. Спробуйте ще раз або знайдіть місто.')
+      } finally {
+        i18n.global.locale.value = 'en'
+      }
+    })
+
+    it('drops the message once a later lookup works', async () => {
+      vi.spyOn(GeoapifyApiService, 'getIpLocation')
+        .mockResolvedValueOnce({ ok: false, error: { kind: 'network', message: 'Network Error' } })
+        .mockResolvedValueOnce({ ok: true, data: { lat: 50.45, lon: 30.52 } })
+      const wrapper = mountToolbar()
+
+      await wrapper.find(byLabel('Use my location')).trigger('click')
+      await flushPromises()
+      await wrapper.find(byLabel('Use my location')).trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.emitted('select')).toEqual([[{ lat: 50.45, lon: 30.52 }]])
+    })
+  })
 })

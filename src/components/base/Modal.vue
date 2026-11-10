@@ -6,6 +6,7 @@
     :aria-labelledby="titleId"
     @keydown.esc.prevent="close"
     @cancel.prevent="close"
+    @close="onNativeClose"
   >
     <div v-if="$slots.icon" class="modal__icon" aria-hidden="true">
       <slot name="icon"></slot>
@@ -37,6 +38,14 @@
 
   function close() {
     open.value = false;
+  }
+
+  // The browser closed the dialog itself (a form with method="dialog", say): tell the owner. The event comes
+  // later than close(), so a dialog that was opened again by then stays open.
+  function onNativeClose() {
+    if(open.value && !dialogRef.value?.open) {
+      close();
+    }
   }
 
   function show() {

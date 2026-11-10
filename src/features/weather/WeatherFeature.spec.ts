@@ -227,6 +227,24 @@ describe('WeatherFeature', () => {
     expect(openModal(wrapper)).toBeUndefined()
   })
 
+  it('moves focus to "Add city" when a card is deleted, so it is not lost with the card', async () => {
+    mockIpLocation(kyiv)
+    const wrapper = await mountFeature()
+    await buttonWithText(wrapper, 'Add city')!.trigger('click')
+    await flushPromises()
+
+    const deleteButton = panel(wrapper).find('button[aria-label="Delete card"]')
+    ;(deleteButton.element as HTMLButtonElement).focus()
+    await deleteButton.trigger('click')
+    await flushPromises()
+    await buttonWithText(openModal(wrapper) as unknown as Wrapper, 'Delete')!.trigger('click')
+    await flushPromises()
+
+    expect(panel(wrapper).findAll('section.city-card')).toHaveLength(1)
+    expect(document.activeElement).not.toBe(document.body)
+    expect(document.activeElement).toBe(buttonWithText(wrapper, 'Add city')!.element)
+  })
+
   it('never falls back to alert() for the limits', async () => {
     const alert = vi.fn()
     vi.stubGlobal('alert', alert)

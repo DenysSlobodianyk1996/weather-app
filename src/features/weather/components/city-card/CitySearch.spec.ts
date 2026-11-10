@@ -96,6 +96,29 @@ describe('CitySearch', () => {
     expect(wrapper.find('.search-city__results').text()).toBe('Lviv, Ukraine')
   })
 
+  it('sends no search once the text drops below 3 letters before the delay ends', async () => {
+    const searchCities = vi.spyOn(GeoapifyApiService, 'searchCities')
+    const wrapper = mountSearch()
+
+    await type(wrapper, 'Lvi')
+    await wrapper.find('input').setValue('Lv')
+    await waitForDebounce()
+
+    expect(searchCities).not.toHaveBeenCalled()
+    expect(wrapper.find('.search-city__results').exists()).toBe(false)
+  })
+
+  it('sends no search after it is gone', async () => {
+    const searchCities = vi.spyOn(GeoapifyApiService, 'searchCities')
+    const wrapper = mountSearch()
+
+    await type(wrapper, 'Lvi')
+    wrapper.unmount()
+    await waitForDebounce()
+
+    expect(searchCities).not.toHaveBeenCalled()
+  })
+
   describe('results', () => {
     async function openResults(results = lvivResults, text = 'Lvi') {
       vi.spyOn(GeoapifyApiService, 'searchCities').mockResolvedValue({ ok: true, data: results })
@@ -192,6 +215,25 @@ describe('CitySearch', () => {
       await options(wrapper)[2].trigger('click')
 
       expect(wrapper.emitted('select')).toEqual([[{ lat: 35.3, lon: -92.1 }]])
+    })
+
+    it('closes the list when focus moves out with Tab', async () => {
+      const wrapper = await openResults()
+      const nextButton = document.createElement('button')
+      document.body.append(nextButton)
+
+      await input(wrapper).trigger('focusout', { relatedTarget: nextButton })
+
+      expect(wrapper.find('.search-city__results').exists()).toBe(false)
+      expect(input(wrapper).attributes('aria-expanded')).toBe('false')
+    })
+
+    it('keeps the list open while focus stays inside it', async () => {
+      const wrapper = await openResults()
+
+      await input(wrapper).trigger('focusout', { relatedTarget: options(wrapper)[1].element })
+
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(true)
     })
 
     it('closes the list on Escape and keeps the text', async () => {

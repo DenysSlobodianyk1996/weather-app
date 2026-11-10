@@ -44,6 +44,7 @@ export default {
     ok: 'Гаразд',
   },
   cityCard: {
+    locationFailed: 'Не вдалося визначити ваше місцезнаходження. Спробуйте ще раз або знайдіть місто.',
     useMyLocation: 'Моє місцезнаходження',
     addToFavorites: 'Додати в обране',
     removeFromFavorites: 'Прибрати з обраного',

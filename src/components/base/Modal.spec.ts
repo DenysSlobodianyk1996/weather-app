@@ -74,6 +74,18 @@ describe('Modal', () => {
     expect(wrapper.find('dialog').attributes('open')).toBeUndefined()
   })
 
+  it('tells its owner when the browser closes the dialog, so it can open again', async () => {
+    const wrapper = await openModal()
+    const dialog = wrapper.find('dialog').element as HTMLDialogElement
+
+    dialog.close()
+    await flushPromises()
+    await wrapper.find('#opener').trigger('click')
+    await flushPromises()
+
+    expect(dialog.open).toBe(true)
+  })
+
   it('closes when its owner closes it', async () => {
     const wrapper = await openModal()
 

@@ -58,20 +58,41 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+// Requests on their way, so identical requests made at the same time share one HTTP call.
+const pending = new Map<string, Promise<RequestResult<unknown>>>();
 
 export function clearRequestCache() {
   cache.clear();
+  pending.clear();
 }
 
-export async function request<T = unknown>(options: RequestOptions<T>): Promise<RequestResult<T>> {
-  const { api, url, params, ttl, parse = (raw: any) => raw as T } = options;
+export function request<T = unknown>(options: RequestOptions<T>): Promise<RequestResult<T>> {
+  const { api, url, params } = options;
   const cacheKey = JSON.stringify([api, url, params]);
 
   const cached = cache.get(cacheKey);
   if(cached && Date.now() < cached.expiresAt) {
-    return { ok: true, data: cached.data as T };
+    return Promise.resolve({ ok: true, data: cached.data as T });
   }
   cache.delete(cacheKey);
+
+  const inFlight = pending.get(cacheKey);
+  if(inFlight) {
+    return inFlight as Promise<RequestResult<T>>;
+  }
+  const result = send(options, cacheKey);
+  pending.set(cacheKey, result);
+  // send() never rejects, so `finally` is enough; the check keeps a newer entry made after clearRequestCache().
+  result.finally(() => {
+    if(pending.get(cacheKey) === result) {
+      pending.delete(cacheKey);
+    }
+  });
+  return result;
+}
+
+async function send<T>(options: RequestOptions<T>, cacheKey: string): Promise<RequestResult<T>> {
+  const { api, url, params, ttl, parse = (raw: any) => raw as T } = options;
 
   let raw: unknown;
   try {

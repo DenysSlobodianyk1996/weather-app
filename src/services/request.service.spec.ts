@@ -100,6 +100,30 @@ describe('request', () => {
     expect(second).toEqual({ ok: true, data: { value: 1 } })
   })
 
+  it('shares one HTTP call between identical requests made at the same time', async () => {
+    mock.onGet('/thing').reply(200, { value: 1 })
+    const options = { api: 'geoapify' as const, url: '/thing', params: { q: 'a' }, ttl: 0 }
+
+    const [first, second] = await Promise.all([request(options), request(options)])
+
+    expect(first).toEqual({ ok: true, data: { value: 1 } })
+    expect(second).toEqual(first)
+    expect(mock.history.get).toHaveLength(1)
+  })
+
+  it('sends a new request once the shared one has failed', async () => {
+    mock.onGet('/thing').replyOnce(500).onGet('/thing').replyOnce(200, { value: 1 })
+    const options = { api: 'geoapify' as const, url: '/thing', ttl: Infinity }
+
+    const [first, second] = await Promise.all([request(options), request(options)])
+    const third = await request(options)
+
+    expect(first.ok).toBe(false)
+    expect(second).toEqual(first)
+    expect(third).toEqual({ ok: true, data: { value: 1 } })
+    expect(mock.history.get).toHaveLength(2)
+  })
+
   it('waits 10 seconds before timing out', async () => {
     mock.onGet('/thing').reply(200, {})
 

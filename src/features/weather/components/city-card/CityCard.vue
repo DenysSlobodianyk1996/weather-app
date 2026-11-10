@@ -11,28 +11,20 @@
       @remove="emit('remove')"
     />
 
-    <template v-if="!!cityLocation">
-      <template v-if="forecastError">
-        <div class="city-card__header">
-          <div class="city-card__details">
-            <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
-          </div>
-          <RemoveFavoriteButton v-if="variant === 'favorite'" @remove="emit('remove')" />
-        </div>
-        <ForecastError @retry="retryForecast" />
+    <CityWeather
+      v-if="cityLocation"
+      :forecast="forecast"
+      :loading="forecastLoading"
+      :error="!!forecastError"
+      @retry="retryForecast"
+    >
+      <template #cityDetails>
+        <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
       </template>
-      <CityWeather
-        v-else
-        :forecast="forecast"
-        :loading="forecastLoading">
-        <template #cityDetails>
-          <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
-        </template>
-        <template v-if="variant === 'favorite'" #actions>
-          <RemoveFavoriteButton @remove="emit('remove')" />
-        </template>
-      </CityWeather>
-    </template>
+      <template v-if="variant === 'favorite'" #actions>
+        <RemoveFavoriteButton @remove="emit('remove')" />
+      </template>
+    </CityWeather>
     <div v-else-if="variant === 'main'" class="city-card__empty">
       <span class="material-icons city-card__empty-icon" aria-hidden="true">location_on</span>
       <span class="city-card__empty-title">{{ t('cityCard.pickCity') }}</span>
@@ -42,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import type { ForecastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
@@ -51,7 +43,6 @@
   import CityCardToolbar from './CityCardToolbar.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
-  import ForecastError from './ForecastError.vue'
   import RemoveFavoriteButton from './RemoveFavoriteButton.vue'
 
   const { locale, t } = useI18n()
@@ -79,13 +70,11 @@
     remove: []
   }>();
 
-  const cityLocation = computed(() => props.cityLocation);
-
-  /** The city name CityDetails loaded for this card. Used by the delete confirmation and the Favorites limit modal. */
+  /**
+   * The city name CityDetails loaded for this card. Used by the delete confirmation and the Favorites limit modal.
+   * CityDetails sends undefined while a new Location loads, so a stale name never shows.
+   */
   const cityName = ref<string>();
-  watch(cityLocation, () => {
-    cityName.value = undefined;
-  });
 
   const {
     data: forecast,
@@ -99,7 +88,7 @@
   watch(
     () => ({
       lastLocale: locale.value,
-      lastLocation: cityLocation.value,
+      lastLocation: props.cityLocation,
     }),
     ({
       lastLocale,
@@ -131,18 +120,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-card);
-
-    &__header {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-4) var(--space-5);
-    }
-
-    &__details {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
 
     &__empty {
       display: flex;

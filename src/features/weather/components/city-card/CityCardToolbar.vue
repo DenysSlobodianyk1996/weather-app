@@ -1,6 +1,6 @@
 <template>
   <div class="card-toolbar">
-    <CitySearch class="card-toolbar__search" @select="emit('select', $event)" />
+    <CitySearch class="card-toolbar__search" @select="selectCity" />
 
     <Button
       icon
@@ -48,10 +48,16 @@
         </template>
       </p>
     </ConfirmDialog>
+
+    <p v-if="locationFailed" class="card-toolbar__error" role="alert">
+      <span class="material-icons card-toolbar__error-icon" aria-hidden="true">error_outline</span>
+      {{ t('cityCard.locationFailed') }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { LocationModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
@@ -75,13 +81,21 @@
     remove: []
   }>();
 
+  /** The last "Use my location" lookup failed. Shown inline, so nothing blocks the page. */
+  const locationFailed = ref(false);
+
+  function selectCity(cityLocation: LocationModel) {
+    locationFailed.value = false;
+    emit('select', cityLocation);
+  }
+
   function selectMyLocation() {
     GeoapifyApiService.getIpLocation()
       .then(result => {
         if(result.ok) {
-          emit('select', result.data);
+          selectCity(result.data);
         } else {
-          alert(t('message.noData'))
+          locationFailed.value = true;
         }
       });
   }
@@ -101,6 +115,26 @@
 
     &__spacer {
       flex-grow: 1;
+    }
+
+    &__error {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-basis: 100%;
+      margin: 0;
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-size-md);
+      color: var(--color-danger-text);
+      background: var(--color-danger-soft);
+      border: 1px solid var(--color-danger-border);
+      border-radius: var(--radius-md);
+    }
+
+    &__error-icon {
+      flex: none;
+      font-size: 18px;
+      color: var(--color-danger);
     }
   }
 
