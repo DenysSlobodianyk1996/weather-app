@@ -12,8 +12,6 @@ const kyiv = { lat: 50.45, lon: 30.52 }
 const slot = {
   dt: 1762776000,
   dt_txt: '2025-11-10 12:00:00',
-  dt_txt_day: '2025-11-10',
-  dt_txt_time: '12:00:00',
   main: { temp: 7, feels_like: 5, pressure: 1012, humidity: 80 },
   weather: [{ id: 800, main: 'Clear', description: 'clear sky', icon: '01d' }],
   wind: { speed: 3, deg: 90 },

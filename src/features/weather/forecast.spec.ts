@@ -174,7 +174,7 @@ describe('5-day forecast', () => {
   it("takes the icon and description from the slot nearest local midday", () => {
     const list = forecastItems('2025-11-10T00:00:00', 8).map(item => ({
       ...item,
-      weather: [{ id: 800, main: 'Clear', description: `at ${item.dt_txt_time}`, icon: '01d' }],
+      weather: [{ id: 800, main: 'Clear', description: `at ${item.dt_txt.slice(11)}`, icon: '01d' }],
     }))
     // Delhi +5:30: local slots 05:30 … 23:30 (and 02:30 the next day); 11:30 is nearest midday.
     const [day] = shapeForecast(list, DELHI, utc('2025-11-10T00:00:00')).fiveDays

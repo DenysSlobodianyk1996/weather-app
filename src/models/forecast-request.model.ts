@@ -1,5 +1,5 @@
 import type { LocationModel } from './location.model';
 
-export interface ForcastRequestModel extends LocationModel {
+export interface ForecastRequestModel extends LocationModel {
   lang: string
 }

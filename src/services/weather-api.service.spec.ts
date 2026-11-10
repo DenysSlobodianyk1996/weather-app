@@ -28,7 +28,7 @@ describe('WeatherApiService.get5Days3HoursForecast', () => {
     mock.restore()
   })
 
-  it('splits dt_txt into dt_txt_day and dt_txt_time', async () => {
+  it('returns the forecast list as the API gives it', async () => {
     mock.onGet(FORECAST_URL).reply(200, {
       list: [{ dt: 1, dt_txt: '2026-11-10 15:00:00' }],
       city: { timezone: 7200 },
@@ -38,11 +38,7 @@ describe('WeatherApiService.get5Days3HoursForecast', () => {
 
     if(!result.ok) throw new Error('expected an ok result')
     expect(result.data.list).toHaveLength(1)
-    expect(result.data.list[0]).toMatchObject({
-      dt_txt: '2026-11-10 15:00:00',
-      dt_txt_day: '2026-11-10',
-      dt_txt_time: '15:00:00',
-    })
+    expect(result.data.list[0]).toEqual({ dt: 1, dt_txt: '2026-11-10 15:00:00' })
   })
 
   it("returns the city's time-zone offset in seconds", async () => {

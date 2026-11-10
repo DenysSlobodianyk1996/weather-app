@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
-  import type { ForcastRequestModel, LocationModel } from '@/models';
+  import type { ForecastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
   import { useAsyncData } from '@/composables';
@@ -93,7 +93,7 @@
     error: forecastError,
     load: loadForecast,
     retry: retryForecast,
-  } = useAsyncData((request: ForcastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
+  } = useAsyncData((request: ForecastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
 
   // Load weather data
   watch(
