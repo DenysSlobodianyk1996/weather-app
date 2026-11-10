@@ -17,6 +17,9 @@
   --color-accent-fill: rgba(61, 108, 158, 0.1);
   --color-on-accent: #ffffff;
   --color-danger: #9a3f37;
+  --color-danger-text: #7d322b;
+  --color-danger-soft: #fbf3f2;
+  --color-danger-border: #ecd3d0;
   --color-backdrop: rgba(30, 41, 53, 0.45);
   --color-shimmer: rgba(255, 255, 255, 0.5);
 

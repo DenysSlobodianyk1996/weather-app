@@ -15,17 +15,23 @@ export default {
     noData: 'No Data',
     maxCards: 'Max amount of cards',
     maxFavoriteCards: 'Max amount of favorite cards',
-    searchCity: 'Search city'
+    searchCity: 'Search city',
+    searchFailed: "Couldn't search cities",
   },
   cityCards: {
     addCity: 'Add city',
     counter: '{n} of {max} cities',
+    findingLocation: 'Finding your location',
   },
   cityCard: {
     useMyLocation: 'Use my location',
     addToFavorites: 'Add to favorites',
     removeFromFavorites: 'Remove from favorites',
     deleteCard: 'Delete card',
+    loadingForecast: 'Loading forecast',
+    forecastFailed: "Couldn't load the forecast",
+    forecastFailedHint: "The weather service didn't answer. Check your connection and try again.",
+    tryAgain: 'Try again',
   },
   weather: {
     time: 'Time',

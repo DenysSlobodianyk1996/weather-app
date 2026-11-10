@@ -29,6 +29,7 @@
       <template v-if="weatherTabMode === 'main'">
         <MainWeatherTab
           :cityCards="cityCards"
+          :loading="ipLocationLoading"
           @update="updateCityCard($event)"
           @remove="removeCityCard($event)"
         />
@@ -54,12 +55,19 @@
   import { FAVORITE_CITIES_KEY, MAX_CITY_CARDS_AMOUNT } from '@/static';
   import type { LocationModel } from '@/models';
   import Button from '@/components/base/Button.vue';
+  import { useAsyncData } from '@/composables';
   import { useI18n } from 'vue-i18n';
 
   const { t } = useI18n();
 
   const cityCards = ref<CityCardModel[]>([]);
   const favoriteCityCards = ref<CityCardModel[]>([]);
+
+  const {
+    data: ipLocation,
+    loading: ipLocationLoading,
+    load: loadIpLocation,
+  } = useAsyncData(() => GeoapifyApiService.getIpLocation());
 
   // Tab mode logic
   const tabsId = useId();
@@ -80,15 +88,15 @@
       favoriteCityCards.value = initFavoriteCityCards;
     }
 
-    GeoapifyApiService.getIpLocation()
-      .then(result => {
-        // Until #7 adds error states, a failed lookup leaves the first card empty.
-        const ipLocation = result.ok ? result.data : undefined;
+    loadIpLocation()
+      .then(() => {
+        // A failed lookup leaves the first card empty, so the user can search for a city.
+        const cityLocation = ipLocation.value ?? undefined;
         // Load ip location. If it was in favorite - use same obj values.
-        const ipLocationCityCardInFavorite = favoriteCityCards.value.find(item => isEqualLocation(item.cityLocation!, ipLocation))
+        const ipLocationCityCardInFavorite = favoriteCityCards.value.find(item => isEqualLocation(item.cityLocation!, cityLocation))
         const initCityCard: CityCardModel = ipLocationCityCardInFavorite ?? {
           id: generateId(),
-          cityLocation: ipLocation,
+          cityLocation,
           isFavorite: false
         };
         cityCards.value = [initCityCard]

@@ -15,17 +15,23 @@ export default {
     noData: 'Немає даних',
     maxCards: 'Максимальна кількість карток',
     maxFavoriteCards: 'Максимальна кількість улюблених карток',
-    searchCity: 'Пошук міста'
+    searchCity: 'Пошук міста',
+    searchFailed: 'Не вдалося знайти міста',
   },
   cityCards: {
     addCity: 'Додати місто',
     counter: '{n} з {max} міст',
+    findingLocation: 'Визначаємо ваше місцезнаходження',
   },
   cityCard: {
     useMyLocation: 'Моє місцезнаходження',
     addToFavorites: 'Додати в обране',
     removeFromFavorites: 'Прибрати з обраного',
     deleteCard: 'Видалити картку',
+    loadingForecast: 'Завантаження прогнозу',
+    forecastFailed: 'Не вдалося завантажити прогноз',
+    forecastFailedHint: 'Сервіс погоди не відповів. Перевірте з’єднання і спробуйте ще раз.',
+    tryAgain: 'Спробувати ще раз',
   },
   weather: {
     time: 'Час',

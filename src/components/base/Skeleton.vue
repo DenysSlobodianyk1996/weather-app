@@ -1,5 +1,5 @@
 <template>
-  <div class="skeleton" :style="styles"></div>
+  <div class="skeleton" :style="styles" aria-hidden="true"></div>
 </template>
 
 <script setup lang="ts">
@@ -8,6 +8,8 @@
   interface Props {
     width?: string;
     height: string;
+    /** Corner radius; defaults to the control radius. */
+    radius?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -15,8 +17,8 @@
   });
 
   const styles = computed(() => {
-    const { width, height } = props;
-    return { width, height }
+    const { width, height, radius } = props;
+    return { width, height, borderRadius: radius }
   })
 </script>
 

@@ -13,7 +13,7 @@
     </div>
 
     <template v-if="weather5Days3HoursForecastLoading">
-      <Skeleton height="560px" />
+      <CityCardSkeleton :label="t('cityCard.loadingForecast')" />
     </template>
     <template v-else>
       <div class="city-weather__days-list">
@@ -53,7 +53,7 @@
   import type { WeatherList } from '@/models';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
   import TemperatureChart from './TemperatureChart.vue'
-  import Skeleton from '@/components/base/Skeleton.vue';
+  import CityCardSkeleton from './CityCardSkeleton.vue';
   import PillSwitch from '@/components/base/PillSwitch.vue';
   import { useI18n } from 'vue-i18n';
 

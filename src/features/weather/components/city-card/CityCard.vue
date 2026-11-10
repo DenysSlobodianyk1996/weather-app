@@ -11,11 +11,16 @@
     />
 
     <template v-if="!!cityLocation">
+      <template v-if="forecastError">
+        <CityDetails :cityLocation="cityLocation" />
+        <ForecastError @retry="retryForecast" />
+      </template>
       <CityWeather
-        :weather5Days3HoursForecast="weather5Days3HoursForecast"
-        :weather5Days3HoursForecastLoading="weather5Days3HoursForecastLoading">
+        v-else
+        :weather5Days3HoursForecast="forecastList"
+        :weather5Days3HoursForecastLoading="forecastLoading">
         <template #cityDetails>
-          <CityDetails  :cityLocation="cityLocation" />
+          <CityDetails :cityLocation="cityLocation" />
         </template>
       </CityWeather>
     </template>
@@ -23,14 +28,16 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, toRefs, watch } from 'vue';
+  import { computed, toRefs, watch } from 'vue';
   import type { CityCardModel } from '../../models';
-  import type { ForcastRequestModel, LocationModel, WeatherList } from '@/models';
+  import type { ForcastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
+  import { useAsyncData } from '@/composables';
   import CityCardToolbar from './CityCardToolbar.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
+  import ForecastError from './ForecastError.vue'
 
   const { locale } = useI18n()
 
@@ -54,8 +61,14 @@
     remove: [id: number]
   }>();
 
-  const weather5Days3HoursForecast = ref<WeatherList[] | null>(null);
-  const weather5Days3HoursForecastLoading = ref(false);
+  const {
+    data: forecast,
+    loading: forecastLoading,
+    error: forecastError,
+    load: loadForecast,
+    retry: retryForecast,
+  } = useAsyncData((request: ForcastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
+  const forecastList = computed(() => forecast.value?.list ?? null);
 
   function toggleFavorite() {
     const newIsFavorite = !cityCard.value.isFavorite;
@@ -64,18 +77,6 @@
       isFavorite: newIsFavorite
     }
     emit('update', newCityCard)
-  }
-
-  function loadWeatherByLocation(request: ForcastRequestModel) {
-    weather5Days3HoursForecastLoading.value = true;
-     WeatherApiService.get5Days3HoursForecast(request)
-      .then(result => {
-        // Until #7 adds error states, a failure shows as an empty forecast.
-        weather5Days3HoursForecast.value = result.ok ? result.data.list : [];
-      })
-      .finally(() => {
-        weather5Days3HoursForecastLoading.value = false;
-      })
   }
 
   function selectCity(newCityLocation: LocationModel) {
@@ -100,7 +101,7 @@
       if(!lastLocale || !lastLocation) {
         return;
       }
-      loadWeatherByLocation({
+      loadForecast({
         lang: lastLocale,
         ...lastLocation
       });

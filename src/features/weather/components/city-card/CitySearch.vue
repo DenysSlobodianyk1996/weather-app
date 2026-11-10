@@ -21,9 +21,12 @@
     <template v-if="searchResultsVisible">
       <ul class="search-city__results">
         <template v-if="citySearchLoading">
-          <li>
+          <li aria-busy="true">
             <Skeleton height="18.5px" />
           </li>
+        </template>
+        <template v-else-if="citySearchError">
+          <li class="search-city__empty">{{ t('message.searchFailed') }}</li>
         </template>
         <template v-else-if="!citiesSearchResult.length">
           <li class="search-city__empty">{{ t('message.noData') }}</li>
@@ -46,6 +49,7 @@
   import { debounce, useClickOutside } from '@/utils';
   import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
+  import { useAsyncData } from '@/composables';
   import { MIN_SEARCH_CHARACTERS } from '@/static';
   import { useI18n } from 'vue-i18n';
 
@@ -55,9 +59,20 @@
   const hintId = useId();
 
   const citySearchText = ref('');
-  const citySearchLoading = ref(false);
   const citySearchFocused = ref(false);
-  const citiesSearchResult = ref<SearchCitiesResultModel[]>([]);
+
+  const {
+    data: searchData,
+    loading: searchRequestLoading,
+    error: citySearchError,
+    load: searchCities,
+    reset: resetSearch,
+  } = useAsyncData((request: SearchCitiesRequest) => GeoapifyApiService.searchCities(request));
+  const citiesSearchResult = computed(() => searchData.value ?? []);
+
+  // True from the keystroke until the debounced search starts, so the placeholder shows at once.
+  const searchQueued = ref(false);
+  const citySearchLoading = computed(() => searchQueued.value || searchRequestLoading.value);
 
   const emit = defineEmits<{
     select: [cityLocation: LocationModel]
@@ -86,13 +101,8 @@
 
   // Search city
   const loadCitiesBySearch = debounce((request: SearchCitiesRequest) => {
-    GeoapifyApiService.searchCities(request)
-      .then(result => {
-        citiesSearchResult.value = result.ok ? result.data : [];
-      })
-      .finally(() => {
-        citySearchLoading.value = false;
-      })
+    searchQueued.value = false;
+    searchCities(request);
   }, 500);
 
    watch(
@@ -105,13 +115,14 @@
   watch(
     () => citySearchText.value,
     lastCitySearchText => {
+      // Results for the old text must not show up while the new search waits for the debounce.
+      resetSearch();
       if(lastCitySearchText?.length < MIN_SEARCH_CHARACTERS) {
-        citiesSearchResult.value = [];
-        citySearchLoading.value = false;
+        searchQueued.value = false;
         return;
       }
 
-      citySearchLoading.value = true;
+      searchQueued.value = true;
       loadCitiesBySearch({
         text: lastCitySearchText,
         lang: locale.value
