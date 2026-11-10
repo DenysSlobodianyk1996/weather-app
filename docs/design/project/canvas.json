@@ -1,0 +1,27 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-10T12:00:00Z" },
+  "title": "Weather App Redesign",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 1240, "title": "Main tab · Day view", "expand": "fill" },
+    "FiveDays.dc.html": { "x": 1360, "y": 0, "w": 1280, "h": 1060, "title": "Main tab · 5-day view", "expand": "fill" },
+    "Favorites.dc.html": { "x": 0, "y": 1360, "w": 1280, "h": 1080, "title": "Favorites tab", "expand": "fill" },
+    "LimitModal.dc.html": { "x": 1360, "y": 1360, "w": 1280, "h": 760, "title": "Favorites limit modal", "expand": "fill" },
+    "Mobile.dc.html": { "x": 0, "y": 2560, "w": 360, "h": 1300, "title": "Main tab · 360px (Ukrainian)" },
+    "States.dc.html": { "x": 440, "y": 2560, "w": 1280, "h": 1000, "title": "Card states", "expand": "fill" },
+    "Icons.dc.html": { "x": 1800, "y": 2560, "w": 1280, "h": 860, "title": "Weather icons", "expand": "fill" }
+  },
+  "order": [
+    "Main.dc.html",
+    "FiveDays.dc.html",
+    "Favorites.dc.html",
+    "LimitModal.dc.html",
+    "Mobile.dc.html",
+    "States.dc.html",
+    "Icons.dc.html"
+  ],
+  "notes": {},
+  "designSystems": []
+}
