@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import i18n from '@/plugins/i18n'
 import { GeoapifyApiService, WeatherApiService, type RequestResult } from '@/services'
 import type { ForecastModel, WeatherList } from '@/models'
@@ -42,6 +42,9 @@ function mountCard() {
 
 const tryAgainButton = (wrapper: ReturnType<typeof mountCard>) =>
   wrapper.findAll('button').find(button => button.text().includes('Try again'))
+
+// Mounted components outlive their test otherwise, and a locale change would make them load for real.
+enableAutoUnmount(afterEach)
 
 describe('CityCard', () => {
   beforeEach(() => {
@@ -200,5 +203,45 @@ describe('CityCard', () => {
     await wrapper.find('button[aria-label="Delete card"]').trigger('click')
 
     expect(wrapper.find('dialog h2').text()).toBe('Delete the Kyiv, Ukraine card?')
+  })
+
+  describe('with no Location yet', () => {
+    it('invites the user to pick a city and loads no forecast', async () => {
+      const getForecast = vi.spyOn(WeatherApiService, 'get5Days3HoursForecast')
+      const wrapper = mount(CityCard, { global: { plugins: [i18n] }, attachTo: document.body })
+      await flushPromises()
+
+      const empty = wrapper.find('.city-card__empty')
+      expect(empty.text()).toContain('Pick a city')
+      expect(empty.text()).toContain('Type at least 3 letters, or use your location.')
+      expect(wrapper.find('input[role="combobox"]').exists()).toBe(true)
+      expect(wrapper.find('button[aria-label="Add to favorites"]').exists()).toBe(false)
+      expect(getForecast).not.toHaveBeenCalled()
+    })
+
+    it('says it in Ukrainian too', async () => {
+      i18n.global.locale.value = 'uk'
+      try {
+        const wrapper = mount(CityCard, { global: { plugins: [i18n] }, attachTo: document.body })
+        await flushPromises()
+
+        expect(wrapper.find('.city-card__empty').text()).toContain('Оберіть місто')
+      } finally {
+        i18n.global.locale.value = 'en'
+      }
+    })
+
+    it('drops the invitation once a Location is set', async () => {
+      vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(forecast)
+      const wrapper = mount(CityCard, {
+        global: { plugins: [i18n], stubs: { TemperatureChart: true } },
+        attachTo: document.body,
+      })
+
+      await wrapper.setProps({ cityLocation: kyiv })
+      await flushPromises()
+
+      expect(wrapper.find('.city-card__empty').exists()).toBe(false)
+    })
   })
 })

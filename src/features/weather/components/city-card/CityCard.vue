@@ -33,6 +33,11 @@
         </template>
       </CityWeather>
     </template>
+    <div v-else-if="variant === 'main'" class="city-card__empty">
+      <span class="material-icons city-card__empty-icon" aria-hidden="true">location_on</span>
+      <span class="city-card__empty-title">{{ t('cityCard.pickCity') }}</span>
+      <span class="city-card__empty-hint">{{ t('cityCard.pickCityHint', { n: MIN_SEARCH_CHARACTERS }) }}</span>
+    </div>
   </section>
 </template>
 
@@ -42,13 +47,14 @@
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
   import { useAsyncData } from '@/composables';
+  import { MIN_SEARCH_CHARACTERS } from '@/static';
   import CityCardToolbar from './CityCardToolbar.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
   import ForecastError from './ForecastError.vue'
   import RemoveFavoriteButton from './RemoveFavoriteButton.vue'
 
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
 
   const props = withDefaults(defineProps<{
     cityLocation?: LocationModel
@@ -136,6 +142,31 @@
     &__details {
       flex: 1 1 auto;
       min-width: 0;
+    }
+
+    &__empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 32px var(--space-4);
+      text-align: center;
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+
+    &__empty-icon {
+      font-size: 40px;
+      color: var(--color-text-muted);
+    }
+
+    &__empty-title {
+      font-weight: 600;
+    }
+
+    &__empty-hint {
+      font-size: var(--font-size-md);
+      color: var(--color-text-muted);
     }
 
     &--favorite {

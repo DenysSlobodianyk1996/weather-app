@@ -14,6 +14,7 @@ export default {
     noData: 'No Data',
     searchCity: 'Search city',
     searchFailed: "Couldn't search cities",
+    cities: 'Cities',
   },
   cityCards: {
     addCity: 'Add city',
@@ -52,6 +53,8 @@ export default {
     forecastFailed: "Couldn't load the forecast",
     forecastFailedHint: "The weather service didn't answer. Check your connection and try again.",
     tryAgain: 'Try again',
+    pickCity: 'Pick a city',
+    pickCityHint: 'Type at least {n} letters, or use your location.',
   },
   weather: {
     time: 'Time',

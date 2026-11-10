@@ -14,6 +14,7 @@ export default {
     noData: 'Немає даних',
     searchCity: 'Пошук міста',
     searchFailed: 'Не вдалося знайти міста',
+    cities: 'Міста',
   },
   cityCards: {
     addCity: 'Додати місто',
@@ -52,6 +53,8 @@ export default {
     forecastFailed: 'Не вдалося завантажити прогноз',
     forecastFailedHint: 'Сервіс погоди не відповів. Перевірте з’єднання і спробуйте ще раз.',
     tryAgain: 'Спробувати ще раз',
+    pickCity: 'Оберіть місто',
+    pickCityHint: 'Введіть щонайменше {n} літери або скористайтеся своїм місцезнаходженням.',
   },
   weather: {
     time: 'Час',

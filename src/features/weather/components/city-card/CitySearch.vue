@@ -8,9 +8,16 @@
         class="search-city__input"
         :placeholder="t('message.searchCity')"
         :aria-describedby="hintId"
+        role="combobox"
+        aria-autocomplete="list"
+        :aria-expanded="optionsVisible"
+        :aria-controls="optionsVisible ? listboxId : undefined"
+        :aria-activedescendant="optionsVisible ? optionId(activeIndex) : undefined"
         type="text"
         autocomplete="off"
-        @focus="citySearchFocused = true"
+        @focus="citySearchFocused = true; listOpen = true"
+        @input="listOpen = true"
+        @keydown="onKeydown"
         v-model="citySearchText" />
     </div>
     <small
@@ -18,35 +25,39 @@
       class="search-city__hint"
       :class="{ 'sr-only': !hintVisible }"
     >{{ t('message.typeAtLeastNCharacters', { n: MIN_SEARCH_CHARACTERS }) }}</small>
-    <template v-if="searchResultsVisible">
-      <ul class="search-city__results">
-        <template v-if="citySearchLoading">
-          <li aria-busy="true">
-            <Skeleton height="18.5px" />
-          </li>
-        </template>
-        <template v-else-if="citySearchError">
-          <li class="search-city__empty">{{ t('message.searchFailed') }}</li>
-        </template>
-        <template v-else-if="!citiesSearchResult.length">
-          <li class="search-city__empty">{{ t('message.noData') }}</li>
-        </template>
-        <template v-else>
-          <template v-for="proposedCity in citiesSearchResult" :key="proposedCity.place_id">
-            <li class="search-city__result" @click.prevent="selectCityFromSearchResult(proposedCity); citySearchText = ''">
-              {{ proposedCity.cityLabel }}
-            </li>
+    <div v-if="searchResultsVisible" class="search-city__results">
+      <div v-if="citySearchLoading" class="search-city__status" aria-busy="true">
+        <Skeleton height="18.5px" />
+      </div>
+      <p v-else-if="citySearchError" class="search-city__status search-city__empty">{{ t('message.searchFailed') }}</p>
+      <p v-else-if="!citiesSearchResult.length" class="search-city__status search-city__empty">{{ t('message.noData') }}</p>
+      <ul v-else :id="listboxId" role="listbox" :aria-label="t('message.cities')" class="search-city__options">
+        <li
+          v-for="(proposedCity, index) in citiesSearchResult"
+          :key="proposedCity.place_id"
+          :id="optionId(index)"
+          role="option"
+          :aria-selected="index === activeIndex"
+          class="search-city__result"
+          :class="{ 'search-city__result--active': index === activeIndex }"
+          @mousedown.prevent
+          @mousemove="activeIndex = index"
+          @click="pickCity(proposedCity)"
+        >
+          <template v-for="(part, partIndex) in highlightMatch(proposedCity.cityLabel, citySearchText)" :key="partIndex">
+            <strong v-if="part.match">{{ part.text }}</strong>
+            <template v-else>{{ part.text }}</template>
           </template>
-        </template>
+        </li>
       </ul>
-    </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import Skeleton from '@/components/base/Skeleton.vue';
   import { computed, ref, useId, useTemplateRef, watch } from 'vue';
-  import { debounce, useClickOutside } from '@/utils';
+  import { debounce, highlightMatch, useClickOutside } from '@/utils';
   import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
   import { useAsyncData } from '@/composables';
@@ -57,9 +68,13 @@
 
   const inputId = useId();
   const hintId = useId();
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const citySearchText = ref('');
   const citySearchFocused = ref(false);
+  /** Escape and picking a city close the list; focusing or typing opens it again. */
+  const listOpen = ref(false);
 
   const {
     data: searchData,
@@ -82,10 +97,25 @@
   const searchCityBoxRef = useTemplateRef('searchCityBoxRef');
   useClickOutside(searchCityBoxRef, () => {
     citySearchFocused.value = false
+    listOpen.value = false
   });
 
   const searchResultsVisible = computed(() => {
-    return citySearchFocused.value && citySearchText.value?.length >= MIN_SEARCH_CHARACTERS;
+    return citySearchFocused.value && listOpen.value && citySearchText.value?.length >= MIN_SEARCH_CHARACTERS;
+  });
+
+  /** The listbox shows only once there are results; loading, errors and "no data" are plain text. */
+  const optionsVisible = computed(() => {
+    return searchResultsVisible.value
+      && !citySearchLoading.value
+      && !citySearchError.value
+      && citiesSearchResult.value.length > 0;
+  });
+
+  // The design opens with the first result active, so Enter picks it straight away.
+  const activeIndex = ref(0);
+  watch(citiesSearchResult, () => {
+    activeIndex.value = 0;
   });
 
   // Show the "type at least N characters" hint only while it applies.
@@ -95,8 +125,45 @@
   });
 
   // Select Location logic
-  function selectCityFromSearchResult({lat, lon}: SearchCitiesResultModel) {
+  function pickCity({lat, lon}: SearchCitiesResultModel) {
     emit('select', {lat, lon});
+    citySearchText.value = '';
+    listOpen.value = false;
+  }
+
+  // Combobox keys: arrows move through the results (wrapping at the ends), Enter picks, Escape closes.
+  function onKeydown(event: KeyboardEvent) {
+    const count = citiesSearchResult.value.length;
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        event.preventDefault();
+        if (!listOpen.value) {
+          listOpen.value = true;
+          activeIndex.value = 0;
+          return;
+        }
+        if (optionsVisible.value) {
+          const step = event.key === 'ArrowDown' ? 1 : -1;
+          activeIndex.value = (activeIndex.value + step + count) % count;
+        }
+        return;
+      }
+      case 'Enter': {
+        // Enter that confirms an input-method composition is not a pick.
+        if (optionsVisible.value && !event.isComposing) {
+          event.preventDefault();
+          pickCity(citiesSearchResult.value[activeIndex.value]);
+        }
+        return;
+      }
+      case 'Escape': {
+        if (listOpen.value) {
+          listOpen.value = false;
+        }
+        return;
+      }
+    }
   }
 
   // Search city
@@ -198,10 +265,19 @@
       box-shadow: var(--shadow-popover);
       z-index: 2;
 
-      li {
-        padding: 9px 10px;
-        border-radius: var(--radius-sm);
-      }
+    }
+
+    &__options {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    &__status,
+    &__result {
+      margin: 0;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
     }
 
     &__empty {
@@ -211,7 +287,11 @@
     &__result {
       cursor: pointer;
 
-      &:hover {
+      strong {
+        font-weight: 700;
+      }
+
+      &--active {
         background: var(--color-accent-soft);
       }
     }
