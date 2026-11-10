@@ -1,97 +1,179 @@
 <template>
-  <div class="chart-wrapper">
-    <canvas ref="chartCanvas"></canvas>
-  </div>
+  <figure class="temperature-chart">
+    <figcaption class="temperature-chart__caption">{{ caption }}</figcaption>
+    <div class="temperature-chart__canvas">
+      <canvas ref="chartCanvas" role="img" :aria-label="caption"></canvas>
+    </div>
+  </figure>
 </template>
 
 <script setup lang="ts">
   import Chart from 'chart.js/auto';
-  import { computed, onMounted, toRefs, useTemplateRef, watch } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, toRefs, useTemplateRef, watch } from 'vue';
   import type { WeatherViewMode } from '../../models';
-  import type { WeatherList } from '@/models';
   import { useI18n } from 'vue-i18n';
+  import { cssVar } from '@/utils';
 
   const { t } = useI18n();
 
   const props = defineProps<{
-    selectedDate: string,
     viewMode: WeatherViewMode,
-    weather5Days3HoursForecast: WeatherList[] | null,
+    /** One per point, in the Location's local time. */
+    labels: string[],
+    /** °C, one per label. */
+    temperatures: number[],
   }>();
   const {
-    selectedDate,
     viewMode,
-    weather5Days3HoursForecast
+    labels: chartLabels,
+    temperatures: chartTemperatures,
   } = toRefs(props);
+
+  const caption = computed(() => viewMode.value === 'day'
+    ? t('weather.temperatureTodayChart')
+    : t('weather.dailyAverageChart'));
+
+  /** From this temperature (°C) up, points and bars use the warm colour of the soft scale. */
+  const WARM_FROM_CELSIUS = 10;
 
   let chartObj: Chart | null = null;
   const canvasRef = useTemplateRef('chartCanvas');
-  const chartContext = computed(() => canvasRef.value?.getContext('2d')!)
 
-  const selectedDateWeatherForecast = computed(() => {
-    const currentSelectedDate = selectedDate.value;
-    return weather5Days3HoursForecast.value?.filter(item => item.dt_txt_day === currentSelectedDate);
-  });
+  function temperatureColors(temperatures: number[]) {
+    const cool = cssVar('--color-temp-cool');
+    const warm = cssVar('--color-temp-warm');
+    return temperatures.map(temp => temp >= WARM_FROM_CELSIUS ? warm : cool);
+  }
 
-  const chartData = computed(() => {
-    const chartItems = viewMode.value === 'week'
-      ? weather5Days3HoursForecast.value
-      : selectedDateWeatherForecast.value;
-
-    return {
-      labels: chartItems?.map(({dt_txt}) => dt_txt) || [],
-      datasets: [
-        {
-          label: t('weather.temperature'),
-          data: chartItems?.map(({main}) => {
-            return main?.temp ?? 0
-          }) ?? []
-        }
-      ]
+  function buildDataset(temperatures: number[]) {
+    const scale = temperatureColors(temperatures);
+    const label = t('weather.temperature');
+    if(viewMode.value === 'fiveDays') {
+      return {
+        label,
+        data: temperatures,
+        backgroundColor: scale,
+        borderRadius: 6,
+      };
     }
-  });
+    return {
+      label,
+      data: temperatures,
+      fill: true,
+      borderColor: cssVar('--color-accent'),
+      backgroundColor: cssVar('--color-accent-fill'),
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: scale,
+      pointBorderColor: cssVar('--color-surface'),
+      pointBorderWidth: 2,
+    };
+  }
 
-  onMounted(() => {
-    chartObj = new Chart(
-      chartContext.value,
-      {
-        type: 'bar',
-        data: chartData.value,
-        options: {
-          responsive: true,
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `${context.parsed.y} °C`
-                }
-              }
+  function createChart() {
+    const context = canvasRef.value?.getContext('2d');
+    if(!context) {
+      return;
+    }
+    const muted = cssVar('--color-text-muted');
+    const gridColor = cssVar('--color-border-subtle');
+    const font = { family: cssVar('--font-sans'), size: 12 };
+
+    chartObj = new Chart(context, {
+      type: viewMode.value === 'fiveDays' ? 'bar' : 'line',
+      data: {
+        labels: chartLabels.value,
+        datasets: [buildDataset(chartTemperatures.value)],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: { display: false },
+            border: { color: cssVar('--color-border') },
+            ticks: { color: muted, font },
+          },
+          y: {
+            // Whole degrees with a little head- and foot-room, so small ranges don't get float ticks.
+            grace: 1,
+            grid: { color: gridColor },
+            border: { display: false },
+            ticks: { color: muted, font, precision: 0, callback: value => `${value}°` },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: cssVar('--color-text'),
+            titleFont: font,
+            bodyFont: font,
+            callbacks: {
+              label: context => `${context.parsed.y} °C`
             }
           }
         }
       }
-    );
+    });
+  }
+
+  function sameItems<T>(a: readonly T[], b: readonly T[]) {
+    return a.length === b.length && a.every((item, index) => item === b[index]);
+  }
+
+  function destroyChart() {
+    chartObj?.destroy();
+    chartObj = null;
+  }
+
+  onMounted(createChart);
+  onBeforeUnmount(destroyChart);
+
+  // Day view is a filled line and the 5-day view is bars, so a mode change rebuilds the chart.
+  watch(viewMode, () => {
+    destroyChart();
+    createChart();
   });
 
   watch(
-    () => chartData.value,
-    (newChartData) => {
-      if(!chartObj || !newChartData) {
+    () => [chartLabels.value, chartTemperatures.value] as const,
+    ([labels, temperatures], [oldLabels, oldTemperatures]) => {
+      // The card reshapes its forecast every minute; only redraw when the points really changed.
+      if(!chartObj || (sameItems(labels, oldLabels) && sameItems(temperatures, oldTemperatures))) {
         return;
       }
-      const { labels, datasets  } = newChartData;
-      chartObj!.data.datasets = datasets;
-      chartObj!.data.labels = labels;
-      chartObj!.update();
+      chartObj.data.labels = labels;
+      chartObj.data.datasets = [buildDataset(temperatures)];
+      chartObj.update();
     },
   );
-
 </script>
 
 <style lang="scss" scoped>
-  .chart-wrapper {
-    width: 100%;
-    height: 400px;
-    margin-top: 16px;
+  .temperature-chart {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+
+    &__caption {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+
+    &__canvas {
+      position: relative;
+      width: 100%;
+      height: 260px;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .temperature-chart__canvas {
+      height: 220px;
+    }
   }
 </style>

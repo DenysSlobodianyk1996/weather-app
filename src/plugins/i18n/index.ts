@@ -14,6 +14,7 @@ function getStorageLanguage(): string {
 }
 
 export default createI18n({
+  legacy: false,
   locale: getStorageLanguage(),
   fallbackLocale: 'en',
   messages

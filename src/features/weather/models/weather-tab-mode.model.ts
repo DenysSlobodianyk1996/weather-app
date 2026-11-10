@@ -1,2 +1,2 @@
 export type WeatherTabMode = 'main' | 'favorite';
-export type WeatherViewMode = 'day' | 'week';
+export type WeatherViewMode = 'day' | 'fiveDays';

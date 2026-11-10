@@ -1,28 +1,7 @@
-  .tab-toolbar {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 8px 0;
-  }
-  .tab-cards {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 16px;
-
-    .no-data {
-      padding: 16px;
-    }
-
-    .city-card {
-      width: 100%;
-      // width: calc(50% - 8px);
-      box-sizing: border-box;
-
-      // @media screen and (max-width: 992px) {
-      //   width: 100%;
-      // }
-    }
-  }
-  
+.tab-cards {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  gap: var(--space-5);
+}

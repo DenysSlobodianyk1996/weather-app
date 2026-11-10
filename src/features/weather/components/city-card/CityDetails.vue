@@ -3,7 +3,7 @@
     <Skeleton height="18.5px" />
   </template>
   <template v-else>
-    <p>{{ cityDetails?.cityLabel ?? 'N/A' }}</p>
+    <h2 class="city-details__title">{{ cityDetails?.cityLabel ?? 'N/A' }}</h2>
   </template>
 </template>
 
@@ -11,29 +11,28 @@
   import Skeleton from '@/components/base/Skeleton.vue';
   import type { CityDetailsRequest, LocationModel, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
-  import { ref, watch } from 'vue';
+  import { useAsyncData } from '@/composables';
+  import { computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  const { locale } = useI18n() 
+  const { locale } = useI18n()
 
   const props = defineProps<{
     cityLocation: LocationModel,
   }>();
-  const loading = ref(false);
 
-  // loadCityDetails logic
-  const cityDetails = ref<SearchCitiesResultModel | null>(null);
+  const emit = defineEmits<{
+    /** The city name the heading shows, or undefined while it loads or when it is unknown. */
+    name: [cityName: string | undefined]
+  }>();
 
-  function loadCityDetails(request: CityDetailsRequest) {
-    loading.value = true;
-    GeoapifyApiService.getCityDetails(request)
-      .then(res => {
-        cityDetails.value = res;
-      })
-      .finally(() => {
-        loading.value = false;
-      })
-  }
+  const {
+    data: cityDetails,
+    loading,
+    load: loadCityDetails,
+  } = useAsyncData<SearchCitiesResultModel | null, [CityDetailsRequest]>(
+    request => GeoapifyApiService.getCityDetails(request)
+  );
 
   watch(
     () => ({
@@ -53,7 +52,22 @@
       immediate: true
     }
   )
+
+  // The card names the city in its modals, so it gets the name from here instead of loading it again.
+  const cityName = computed(() => (loading.value ? undefined : cityDetails.value?.cityLabel));
+  watch(cityName, name => emit('name', name), { immediate: true });
 </script>
 
 <style lang="scss" scoped>
+  .city-details__title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 599px) {
+    .city-details__title {
+      font-size: 16px;
+    }
+  }
 </style>

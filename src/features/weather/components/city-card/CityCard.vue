@@ -1,124 +1,94 @@
 <template>
-  <div class="city-card">
-    <div class="city-card__toolbar">
-      <CitySearch @select="selectCity($event)" />
-      <div class="toolbar-actions">
-        <template v-if="!hideRemoveAction">
-          <ConfirmDialog
-            id="remove-card" 
-            @confirm="emit('remove', cityCard.id)">
-            <template #dialogActivator="{props: activatorPros}">
-              <Button
-                v-bind="activatorPros"
-                class="city-card__delete">
-                <span class="material-icons">delete_outline</span>
-              </Button>
-            </template>
-            <template #dialogContent>
-              <h3>{{ t('message.deleteThisCard') }}</h3>
-            </template>
-          </ConfirmDialog>
-        </template>
-        <template v-if="!!cityLocation && !hideFavoriteAction">
-          <!-- Add to favorite if only city location is selected -->
-          <Button
-            class="city-card__favorite"
-            @click="toggleFavorite">
-            <span class="material-icons">{{ toggleFavoriteIcon }}</span>
-          </Button>
-        </template>
-      </div>
-    </div>
+  <section class="city-card" :class="{ 'city-card--favorite': isFavorite }">
+    <CityCardToolbar
+      v-if="variant === 'main'"
+      :has-location="!!cityLocation"
+      :is-favorite="isFavorite"
+      :hide-remove-action="hideRemoveAction"
+      :city-name="cityName"
+      @select="emit('select', $event)"
+      @toggle-favorite="emit('toggleFavorite', cityName)"
+      @remove="emit('remove')"
+    />
 
-    <template v-if="!!cityLocation">
-      <CityWeather
-        :weather5Days3HoursForecast="weather5Days3HoursForecast"
-        :weather5Days3HoursForecastLoading="weather5Days3HoursForecastLoading">
-        <template #cityDetails>
-          <CityDetails  :cityLocation="cityLocation" />
-        </template>
-      </CityWeather>
-    </template>
-  </div>
+    <CityWeather
+      v-if="cityLocation"
+      :forecast="forecast"
+      :loading="forecastLoading"
+      :error="!!forecastError"
+      @retry="retryForecast"
+    >
+      <template #cityDetails>
+        <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
+      </template>
+      <template v-if="variant === 'favorite'" #actions>
+        <RemoveFavoriteButton @remove="emit('remove')" />
+      </template>
+    </CityWeather>
+    <div v-else-if="variant === 'main'" class="city-card__empty">
+      <span class="material-icons city-card__empty-icon" aria-hidden="true">location_on</span>
+      <span class="city-card__empty-title">{{ t('cityCard.pickCity') }}</span>
+      <span class="city-card__empty-hint">{{ t('cityCard.pickCityHint', { n: MIN_SEARCH_CHARACTERS }) }}</span>
+    </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, toRefs, watch } from 'vue';
-  import type { CityCardModel } from '../../models';
-  import type { ForcastRequestModel, LocationModel, WeatherList } from '@/models';
+  import { ref, watch } from 'vue';
+  import type { ForecastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
-  import CitySearch from './CitySearch.vue'
+  import { useAsyncData } from '@/composables';
+  import { MIN_SEARCH_CHARACTERS } from '@/static';
+  import CityCardToolbar from './CityCardToolbar.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
-  import ConfirmDialog from '@/components/base/ConfirmDialog.vue';
-  import Button from '@/components/base/Button.vue';
+  import RemoveFavoriteButton from './RemoveFavoriteButton.vue'
 
   const { locale, t } = useI18n()
 
-  const props = defineProps<{
-    cityCard: CityCardModel,
-    hideRemoveAction?: boolean,
-    hideFavoriteAction?: boolean,
-  }>();
-
-  const {
-    cityCard,
-    hideRemoveAction,
-    hideFavoriteAction,
-  } = toRefs(props);
-
-  const cityLocation = computed(() => cityCard.value.cityLocation);
-  const isFavorite = computed(() => cityCard.value.isFavorite);
-
-  const toggleFavoriteIcon = computed(() => {
-    return isFavorite.value
-      ? 'favorite'
-      : 'favorite_border'
+  const props = withDefaults(defineProps<{
+    cityLocation?: LocationModel
+    /** The Location is a Favorite. Worked out by the City cards module, never stored on the card. */
+    isFavorite?: boolean
+    /**
+     * `main`: the toolbar with city search, my location, heart and delete.
+     * `favorite`: no toolbar; a "Remove" button next to the Day / 5 days switch.
+     */
+    variant?: 'main' | 'favorite'
+    hideRemoveAction?: boolean
+  }>(), {
+    isFavorite: false,
+    variant: 'main',
   });
 
   const emit = defineEmits<{
-    update: [cityCard: CityCardModel],
-    remove: [id: number]
+    select: [cityLocation: LocationModel]
+    /** Carries the city name, so a "Favorites are full" modal can name it. */
+    toggleFavorite: [cityName: string | undefined]
+    /** `main`: delete the card (confirmed). `favorite`: remove the Favorite. */
+    remove: []
   }>();
 
-  const weather5Days3HoursForecast = ref<WeatherList[] | null>(null);
-  const weather5Days3HoursForecastLoading = ref(false);
+  /**
+   * The city name CityDetails loaded for this card. Used by the delete confirmation and the Favorites limit modal.
+   * CityDetails sends undefined while a new Location loads, so a stale name never shows.
+   */
+  const cityName = ref<string>();
 
-  function toggleFavorite() {
-    const newIsFavorite = !cityCard.value.isFavorite;
-    const newCityCard: CityCardModel = {
-      ...cityCard.value,
-      isFavorite: newIsFavorite
-    }
-    emit('update', newCityCard)
-  }
-
-  function loadWeatherByLocation(request: ForcastRequestModel) {
-    weather5Days3HoursForecastLoading.value = true;
-     WeatherApiService.get5Days3HoursForecast(request)
-      .then(weather => {
-        weather5Days3HoursForecast.value = weather;
-      })
-      .finally(() => {
-        weather5Days3HoursForecastLoading.value = false;
-      })
-  }
-
-  function selectCity(newCityLocation: LocationModel) {
-    const newCityCard: CityCardModel = {
-      ...cityCard.value,
-      cityLocation: newCityLocation,
-      isFavorite: false
-    }
-    emit('update', newCityCard)
-  }
+  const {
+    data: forecast,
+    loading: forecastLoading,
+    error: forecastError,
+    load: loadForecast,
+    retry: retryForecast,
+  } = useAsyncData((request: ForecastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
 
   // Load weather data
   watch(
     () => ({
       lastLocale: locale.value,
-      lastLocation: cityLocation.value,
+      lastLocation: props.cityLocation,
     }),
     ({
       lastLocale,
@@ -127,9 +97,10 @@
       if(!lastLocale || !lastLocation) {
         return;
       }
-      loadWeatherByLocation({
+      loadForecast({
         lang: lastLocale,
-        ...lastLocation
+        lat: lastLocation.lat,
+        lon: lastLocation.lon,
       });
     },
     {
@@ -140,33 +111,51 @@
 
 <style lang="scss" scoped>
   .city-card {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-5);
+    min-width: 0;
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
 
-    &__toolbar {
+    &__empty {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      flex-wrap: wrap;
-
-      .toolbar-actions {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-left: auto;
-      }
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 32px var(--space-4);
+      text-align: center;
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-lg);
     }
 
-    &__favorite {
-      color: orange !important;
+    &__empty-icon {
+      font-size: 40px;
+      color: var(--color-text-muted);
     }
-    &__delete {
-      color: red !important;
+
+    &__empty-title {
+      font-weight: 600;
+    }
+
+    &__empty-hint {
+      font-size: var(--font-size-md);
+      color: var(--color-text-muted);
+    }
+
+    &--favorite {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-card);
+    }
+  }
+
+  @media (max-width: 599px) {
+    .city-card {
+      gap: var(--space-4);
+      padding: var(--space-4);
     }
   }
 </style>

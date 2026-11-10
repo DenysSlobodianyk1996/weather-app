@@ -4,65 +4,49 @@
     :props="activatorProps"
   ></slot>
 
-  <dialog :id="id" ref="dialog">
-    <slot name="dialogContent"></slot>
-    <div class="dialog-actions">
-      <Button @click="closeDialog">{{ t('dialog.cancel') }}</Button>
-      <Button @click="emit('confirm'); closeDialog">{{ t('dialog.confirm') }}</Button>
-    </div>
-  </dialog>
+  <Modal v-model:open="open">
+    <template #title><slot name="title"></slot></template>
+    <slot></slot>
+    <template #actions>
+      <Button @click="open = false">{{ t('dialog.cancel') }}</Button>
+      <Button :variant="danger ? 'danger' : 'primary'" @click="confirm">
+        {{ confirmLabel ?? t('dialog.confirm') }}
+      </Button>
+    </template>
+  </Modal>
 </template>
 
 <script setup lang="ts">
-  import { toRefs, useTemplateRef } from 'vue';
-  import Button from './Button.vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import Button from './Button.vue';
+  import Modal from './Modal.vue';
 
   const { t } = useI18n();
 
-  const props = defineProps<{
-    id: string
+  defineProps<{
+    /** Text of the confirm button. Defaults to "Confirm". */
+    confirmLabel?: string
+    /** The confirmed action destroys something, so the confirm button is red. */
+    danger?: boolean
   }>();
-  const { id } = toRefs(props);
 
   const emit = defineEmits<{
     confirm: []
-  }>()
+  }>();
 
-  const dialogRef = useTemplateRef('dialog');
+  const open = ref(false);
 
   const activatorProps = {
     onClick: () => {
-      dialogRef.value?.showModal();
-    }
-  }
+      open.value = true;
+    },
+  };
 
-  function closeDialog() {
-    dialogRef.value?.close()
+  // Close first: the confirmed action may remove this dialog (deleting a card does), and a closed
+  // dialog gives focus back before it goes. The owner moves focus on if the opener goes too.
+  function confirm() {
+    open.value = false;
+    emit('confirm');
   }
 </script>
-
-<style lang="scss" scoped>
-  dialog {
-    min-width: 200px;
-    min-height: 50px;
-    border: unset;
-    border-radius: 4px;
-    padding: 24px;
-    flex-direction: column;
-    gap: 16px;
-    &[open] {
-      display: flex;
-    }
-
-    &::backdrop {
-      background-color: rgba($color: #000000, $alpha: .4);
-    }
-  }
-
-  .dialog-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-  }
-</style>

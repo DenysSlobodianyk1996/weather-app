@@ -2,13 +2,9 @@ export interface WeatherList {
   dt: number
   main: Main
   weather: Weather[]
-  // clouds: Clouds
   wind: Wind
-  // rain?: Rain
   dt_txt: string
   visibility: number
-  dt_txt_day?: string // mapped on FE
-  dt_txt_time?: string // mapped on FE
 }
 
 export interface Main {
@@ -27,14 +23,13 @@ export interface Weather {
   icon: string
 }
 
-// export interface Clouds {
-//   all: number
-// }
-
 export interface Wind {
   speed: number
   deg: number
   gust: number
 }
 
-// export type Rain = Record<string, number>
+export interface ForecastModel {
+  list: WeatherList[]
+  timezoneOffset: number // Shift from UTC in seconds (OpenWeatherMap `city.timezone`)
+}

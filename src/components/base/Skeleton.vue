@@ -1,5 +1,5 @@
 <template>
-  <div class="skeleton" :style="styles"></div>
+  <div class="skeleton" :style="styles" aria-hidden="true"></div>
 </template>
 
 <script setup lang="ts">
@@ -8,6 +8,8 @@
   interface Props {
     width?: string;
     height: string;
+    /** Corner radius; defaults to the control radius. */
+    radius?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -15,8 +17,8 @@
   });
 
   const styles = computed(() => {
-    const { width, height } = props;
-    return { width, height }
+    const { width, height, radius } = props;
+    return { width, height, borderRadius: radius }
   })
 </script>
 
@@ -24,8 +26,8 @@
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: #e5e7eb;
-    border-radius: 8px;
+    background: var(--color-surface-muted);
+    border-radius: var(--radius-md);
   }
 
   .skeleton::after {
@@ -36,7 +38,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.5),
+      var(--color-shimmer),
       transparent
     );
     animation: skeleton-loading 1.2s infinite;

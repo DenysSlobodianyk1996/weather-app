@@ -1,47 +1,35 @@
 <template>
   <div class="city-weather">
+    <!--
+      One header for every state: the city name (CityDetails, in the cityDetails slot) and the actions stay
+      mounted while the forecast loads, fails or arrives, so the name is loaded once and doesn't flicker.
+    -->
     <div class="city-weather__header">
-      <div class="city-weather__view-mode">
-        <Button
-          :class="{
-            active: viewMode === 'day'
-          }"
-          @click="setViewMode('day')">{{ t('viewMode.day') }}</Button>
-        <Button
-          :class="{
-            active: viewMode === 'week'
-          }"
-          @click="setViewMode('week')">{{ t('viewMode.week') }}</Button>
-      </div>
-      <slot name="cityDetails"></slot>
+      <CurrentConditions :current="loading || error ? null : shaped?.current ?? null">
+        <slot name="cityDetails"></slot>
+      </CurrentConditions>
+      <PillSwitch
+        v-if="!error"
+        class="city-weather__view-mode"
+        v-model="viewMode"
+        :label="t('viewMode.label')"
+        :options="viewModeOptions"
+      />
+      <slot name="actions"></slot>
     </div>
 
-    <template v-if="weather5Days3HoursForecastLoading">
-      <Skeleton height="560px" />
+    <template v-if="loading">
+      <CityCardSkeleton :label="t('cityCard.loadingForecast')" />
     </template>
-    <template v-else>
-      <div class="city-weather__days-list">
-        <div class="days-list__tabs">
-          <template v-if="viewMode === 'day'">
-            <Button class="active">{{ selectedDate }}</Button>
-          </template>
-          <template v-else>
-            <template v-for="day in weatherForecastDays" :key="day">
-              <Button 
-                :class="{
-                  active: selectedDate === day
-                }"
-                @click="selectDay(day)">{{ day }}</Button>
-            </template>
-          </template>
-        </div>
-        <template v-if="selectedDateWeatherForecast.length">
-          <DayWeatherSummary :selectedDateWeatherForecast="selectedDateWeatherForecast" />
-        </template>
+    <ForecastError v-else-if="error" @retry="emit('retry')" />
+    <template v-else-if="shaped">
+      <div class="city-weather__forecast">
+        <DayWeatherSummary v-if="viewMode === 'day'" :periods="shaped.today.periods" />
+        <FiveDayForecast v-else :days="shaped.fiveDays" />
         <TemperatureChart
-          :selectedDate="selectedDate"  
           :viewMode="viewMode"
-          :weather5Days3HoursForecast="weather5Days3HoursForecast"
+          :labels="chartPoints.labels"
+          :temperatures="chartPoints.temperatures"
         />
       </div>
     </template>
@@ -49,90 +37,96 @@
 </template>
 
 <script setup lang="ts">
-  import Button from '@/components/base/Button.vue';
-  import { computed, ref, toRefs, watch } from 'vue';
-  import type { WeatherViewMode } from '../../models';
-  import type { WeatherList } from '@/models';
-  import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
-  import TemperatureChart from './TemperatureChart.vue'
-  import Skeleton from '@/components/base/Skeleton.vue';
+  import PillSwitch from '@/components/base/PillSwitch.vue';
+  import type { ForecastModel } from '@/models';
+  import { useNow } from '@/composables';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import type { WeatherViewMode } from '../../models';
+  import { formatShortDay, shapeForecast } from '../../forecast';
+  import CityCardSkeleton from './CityCardSkeleton.vue';
+  import CurrentConditions from './CurrentConditions.vue';
+  import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
+  import ForecastError from './ForecastError.vue'
+  import FiveDayForecast from './FiveDayForecast.vue'
+  import TemperatureChart from './TemperatureChart.vue'
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const props = defineProps<{
-    weather5Days3HoursForecast: WeatherList[] | null,
-    weather5Days3HoursForecastLoading: boolean
+    forecast: ForecastModel | null,
+    loading: boolean
+    /** The forecast failed: the error with "Try again" shows instead of it. */
+    error?: boolean
   }>();
-  const {
-    weather5Days3HoursForecast,
-    weather5Days3HoursForecastLoading
-  } = toRefs(props);
 
-  const weatherForecastGroupByDays = computed(() => {
-    const groupedList: Record<string, WeatherList[]> = {};
-    weather5Days3HoursForecast.value?.forEach(item => {
-      const day = item.dt_txt_day!;
-      if(!groupedList[day]) {
-        groupedList[day] = []
-      }
-      groupedList[day].push(item);
-    });
-    return groupedList;
-  });
+  const emit = defineEmits<{
+    retry: []
+  }>();
 
-  const weatherForecastDays = computed(() => Object.keys(weatherForecastGroupByDays.value));
+  // Ticks every minute, so the local clock and "today" move on while the card stays open.
+  const now = useNow();
+
+  const shaped = computed(() => props.forecast
+    ? shapeForecast(props.forecast.list, props.forecast.timezoneOffset, now.value)
+    : null);
 
   const viewMode = ref<WeatherViewMode>('day');
-  const selectedDate = ref<string>('');
+  const viewModeOptions = computed<{ value: WeatherViewMode; label: string }[]>(() => [
+    { value: 'day', label: t('viewMode.day') },
+    { value: 'fiveDays', label: t('viewMode.fiveDays') },
+  ]);
 
-  const selectedDateWeatherForecast = computed<WeatherList[]>(() => {
-    const currentSelectedDate = selectedDate.value;
-    const currentWeatherForecastGroupByDays = weatherForecastGroupByDays.value;
-    if(!currentSelectedDate || !currentWeatherForecastGroupByDays) {
-      return []
+  const chartPoints = computed(() => {
+    if(!shaped.value) {
+      return { labels: [], temperatures: [] };
     }
-    return currentWeatherForecastGroupByDays[currentSelectedDate] ?? [];
+    if(viewMode.value === 'day') {
+      // Today's slots at their local times, e.g. "14:00".
+      const { slots } = shaped.value.today;
+      return {
+        labels: slots.map(slot => slot.localTime),
+        temperatures: slots.map(slot => slot.main?.temp ?? 0),
+      };
+    }
+    // One bar per Daily average, rounded like the rows show it: "Today", "Wed 12", …
+    const days = shaped.value.fiveDays;
+    return {
+      labels: days.map(day => day.isToday ? t('fiveDays.today') : formatShortDay(day.localTimestamp, locale.value)),
+      temperatures: days.map(day => Math.round(day.dailyAverage)),
+    };
   });
-
-  function setViewMode(newViewMode: WeatherViewMode) {
-    viewMode.value = newViewMode;
-  }
-  function selectDay(newDay: string) {
-    selectedDate.value = newDay ?? '';
-  }
-
-  // Set init selected date
-  watch(
-    () => ({
-      newWeatherForecastDays: weatherForecastDays.value,
-      newViewMode: viewMode.value // when view mode changed - reset day to 1st day in list
-    }),
-    ({newWeatherForecastDays}) => {
-      const currentSelectedDateExists = newWeatherForecastDays?.find(day => day === selectedDate.value)
-      if(!currentSelectedDateExists) {
-        selectDay(newWeatherForecastDays?.at(0) ?? '');
-      }
-    },
-    {
-      immediate: true
-    }
-  );
 </script>
 
 <style lang="scss" scoped>
   .city-weather {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-5);
+    min-width: 0;
+
     &__header {
       display: flex;
       align-items: center;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: var(--space-4) var(--space-5);
     }
-    &__view-mode {
+
+    &__forecast {
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-width: 0;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .city-weather {
+      gap: var(--space-4);
+
+      &__view-mode {
+        flex-basis: 100%;
+      }
     }
   }
 </style>
