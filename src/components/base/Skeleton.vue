@@ -24,8 +24,8 @@
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: #e5e7eb;
-    border-radius: 8px;
+    background: var(--color-surface-muted);
+    border-radius: var(--radius-md);
   }
 
   .skeleton::after {
@@ -36,7 +36,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.5),
+      var(--color-shimmer),
       transparent
     );
     animation: skeleton-loading 1.2s infinite;

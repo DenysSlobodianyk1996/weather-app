@@ -1,4 +1,5 @@
 export * from './click-outside'
+export * from './css-var'
 export * from './debounce'
 export * from './generate-id'
 export * from './is-equal-location'

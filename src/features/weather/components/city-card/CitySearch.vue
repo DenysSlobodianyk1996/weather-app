@@ -1,20 +1,23 @@
 <template>
   <div ref="searchCityBoxRef" class="search-city">
-    <div class="input-wrapper">
-      <div class="input-with-addon">
-        <input
-          id="search-input"
-          :placeholder="t('message.searchCity')"
-          ref="searchInput"
-          type="text"
-          @focus="citySearchFocused = true"
-          v-model="citySearchText" />
-        <Button @click="selectMyLocation">
-          <span class="material-icons">my_location</span>
-        </Button>
-      </div>
-      <small>{{ t('message.typeAtLeastNCharacters', { n: MIN_SEARCH_CHARACTERS }) }}</small>
+    <label :for="inputId" class="sr-only">{{ t('message.searchCity') }}</label>
+    <div class="search-city__field">
+      <span class="material-icons search-city__icon" aria-hidden="true">search</span>
+      <input
+        :id="inputId"
+        class="search-city__input"
+        :placeholder="t('message.searchCity')"
+        :aria-describedby="hintId"
+        type="text"
+        autocomplete="off"
+        @focus="citySearchFocused = true"
+        v-model="citySearchText" />
     </div>
+    <small
+      :id="hintId"
+      class="search-city__hint"
+      :class="{ 'sr-only': !hintVisible }"
+    >{{ t('message.typeAtLeastNCharacters', { n: MIN_SEARCH_CHARACTERS }) }}</small>
     <template v-if="searchResultsVisible">
       <ul class="search-city__results">
         <template v-if="citySearchLoading">
@@ -23,11 +26,11 @@
           </li>
         </template>
         <template v-else-if="!citiesSearchResult.length">
-          <li>{{ t('message.noData') }}</li>
+          <li class="search-city__empty">{{ t('message.noData') }}</li>
         </template>
         <template v-else>
           <template v-for="proposedCity in citiesSearchResult" :key="proposedCity.place_id">
-            <li class="result-item" @click.prevent="selectCityFromSearchResult(proposedCity); citySearchText = ''">
+            <li class="search-city__result" @click.prevent="selectCityFromSearchResult(proposedCity); citySearchText = ''">
               {{ proposedCity.cityLabel }}
             </li>
           </template>
@@ -39,8 +42,7 @@
 
 <script setup lang="ts">
   import Skeleton from '@/components/base/Skeleton.vue';
-  import Button from '@/components/base/Button.vue';
-  import { computed, ref, useTemplateRef, watch } from 'vue';
+  import { computed, ref, useId, useTemplateRef, watch } from 'vue';
   import { debounce, useClickOutside } from '@/utils';
   import type { LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
@@ -48,6 +50,9 @@
   import { useI18n } from 'vue-i18n';
 
   const { locale, t } = useI18n();
+
+  const inputId = useId();
+  const hintId = useId();
 
   const citySearchText = ref('');
   const citySearchLoading = ref(false);
@@ -68,20 +73,15 @@
     return citySearchFocused.value && citySearchText.value?.length >= MIN_SEARCH_CHARACTERS;
   });
 
+  // Show the "type at least N characters" hint only while it applies.
+  const hintVisible = computed(() => {
+    const length = citySearchText.value?.length ?? 0;
+    return citySearchFocused.value && length > 0 && length < MIN_SEARCH_CHARACTERS;
+  });
+
   // Select Location logic
   function selectCityFromSearchResult({lat, lon}: SearchCitiesResultModel) {
     emit('select', {lat, lon});
-  }
-
-  function selectMyLocation() {
-    GeoapifyApiService.getIpLocation()
-      .then(ipLocation => {
-        if(ipLocation) {
-          emit('select', ipLocation);
-        } else {
-          alert(t('message.noData'))
-        }
-      });
   }
 
   // Search city
@@ -126,51 +126,82 @@
 <style lang="scss" scoped>
   .search-city {
     display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
     position: relative;
-    max-width: 200px;
-    width: 100%;
+    min-width: 0;
 
-    .input-wrapper {
+    &__field {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-      width: 100%;
+      align-items: center;
+      gap: var(--space-2);
+      height: var(--control-height);
+      padding: 0 var(--space-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
 
-      .input-with-addon {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-
-        input[id="search-input"] {
-          padding: 8px;
-          margin: 4px 0;
-        }
+      &:focus-within {
+        background: var(--color-surface);
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 1px var(--color-accent);
       }
+    }
+
+    &__icon {
+      font-size: 20px;
+      color: var(--color-text-muted);
+    }
+
+    &__input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: none;
+      color: var(--color-text);
+      outline: none;
+
+      &::placeholder {
+        color: var(--color-text-muted);
+      }
+    }
+
+    &__hint {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
     }
 
     &__results {
       position: absolute;
-      top: 100%;
-      background: #eee;
+      top: calc(var(--control-height) + var(--space-1));
+      left: 0;
+      right: 0;
       max-height: 300px;
       overflow-y: auto;
-      box-sizing: border-box;
-      width: 100%;
-      border-radius: 8px;
+      margin: 0;
+      padding: var(--space-1);
       list-style: none;
-      margin-top: 2px;
-      padding: 0;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-popover);
       z-index: 2;
 
       li {
-        padding: 8px;
+        padding: 9px 10px;
+        border-radius: var(--radius-sm);
+      }
+    }
 
-        &.result-item {
-          cursor: pointer;
-          &:hover {
-            background-color: #ddd;
-          }
-        }
+    &__empty {
+      color: var(--color-text-muted);
+    }
+
+    &__result {
+      cursor: pointer;
+
+      &:hover {
+        background: var(--color-accent-soft);
       }
     }
   }

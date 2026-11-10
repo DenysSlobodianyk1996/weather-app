@@ -2,9 +2,12 @@ export default {
   app: {
     title: 'Weather',
   },
+  header: {
+    changeLanguage: 'Change language ({lang})',
+  },
   dialog: {
     cancel: 'Cancel',
-    confirm: 'Confim',
+    confirm: 'Confirm',
   },
   message: {
     deleteThisCard: 'Do you want to delete this card?',
@@ -14,21 +17,36 @@ export default {
     maxFavoriteCards: 'Max amount of favorite cards',
     searchCity: 'Search city'
   },
+  cityCards: {
+    addCity: 'Add city',
+    counter: '{n} of {max} cities',
+  },
+  cityCard: {
+    useMyLocation: 'Use my location',
+    addToFavorites: 'Add to favorites',
+    removeFromFavorites: 'Remove from favorites',
+    deleteCard: 'Delete card',
+  },
   weather: {
+    time: 'Time',
+    conditions: 'Conditions',
     temperature: 'Temperature',
-    fillsLike: 'Fills like',
+    feelsLike: 'Feels like',
     pressure: 'Pressure',
     humidity: 'Humidity',
     windSpeed: 'Wind speed',
     directionDeg: 'Direction deg',
     visibility: 'Visibility',
-    meters: 'Meters'
+    meters: 'Meters',
+    temperatureChart: 'Temperature, °C',
   },
   viewMode: {
+    label: 'Forecast view',
     day: 'Day',
     week: 'Week',
+    tabsLabel: 'City lists',
     main: 'Main',
-    favorite: 'Favorite',
+    favorite: 'Favorites',
   },
   dayTime: {
     night: 'Night',

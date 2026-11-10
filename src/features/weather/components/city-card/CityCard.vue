@@ -1,34 +1,14 @@
 <template>
-  <div class="city-card">
-    <div class="city-card__toolbar">
-      <CitySearch @select="selectCity($event)" />
-      <div class="toolbar-actions">
-        <template v-if="!hideRemoveAction">
-          <ConfirmDialog
-            id="remove-card" 
-            @confirm="emit('remove', cityCard.id)">
-            <template #dialogActivator="{props: activatorPros}">
-              <Button
-                v-bind="activatorPros"
-                class="city-card__delete">
-                <span class="material-icons">delete_outline</span>
-              </Button>
-            </template>
-            <template #dialogContent>
-              <h3>{{ t('message.deleteThisCard') }}</h3>
-            </template>
-          </ConfirmDialog>
-        </template>
-        <template v-if="!!cityLocation && !hideFavoriteAction">
-          <!-- Add to favorite if only city location is selected -->
-          <Button
-            class="city-card__favorite"
-            @click="toggleFavorite">
-            <span class="material-icons">{{ toggleFavoriteIcon }}</span>
-          </Button>
-        </template>
-      </div>
-    </div>
+  <section class="city-card" :class="{ 'city-card--favorite': isFavorite }">
+    <CityCardToolbar
+      :has-location="!!cityLocation"
+      :is-favorite="!!isFavorite"
+      :hide-remove-action="hideRemoveAction"
+      :hide-favorite-action="hideFavoriteAction"
+      @select="selectCity($event)"
+      @toggle-favorite="toggleFavorite"
+      @remove="emit('remove', cityCard.id)"
+    />
 
     <template v-if="!!cityLocation">
       <CityWeather
@@ -39,7 +19,7 @@
         </template>
       </CityWeather>
     </template>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -48,13 +28,11 @@
   import type { ForcastRequestModel, LocationModel, WeatherList } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
-  import CitySearch from './CitySearch.vue'
+  import CityCardToolbar from './CityCardToolbar.vue'
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
-  import ConfirmDialog from '@/components/base/ConfirmDialog.vue';
-  import Button from '@/components/base/Button.vue';
 
-  const { locale, t } = useI18n()
+  const { locale } = useI18n()
 
   const props = defineProps<{
     cityCard: CityCardModel,
@@ -70,12 +48,6 @@
 
   const cityLocation = computed(() => cityCard.value.cityLocation);
   const isFavorite = computed(() => cityCard.value.isFavorite);
-
-  const toggleFavoriteIcon = computed(() => {
-    return isFavorite.value
-      ? 'favorite'
-      : 'favorite_border'
-  });
 
   const emit = defineEmits<{
     update: [cityCard: CityCardModel],
@@ -140,33 +112,26 @@
 
 <style lang="scss" scoped>
   .city-card {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-5);
+    min-width: 0;
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
 
-    &__toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      flex-wrap: wrap;
-
-      .toolbar-actions {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        margin-left: auto;
-      }
+    &--favorite {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-card);
     }
+  }
 
-    &__favorite {
-      color: orange !important;
-    }
-    &__delete {
-      color: red !important;
+  @media (max-width: 599px) {
+    .city-card {
+      gap: var(--space-4);
+      padding: var(--space-4);
     }
   }
 </style>

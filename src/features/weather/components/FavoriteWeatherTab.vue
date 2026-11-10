@@ -32,8 +32,4 @@
 
 <style lang="scss" scoped>
   @use './shared-tab-styles.scss';
-
-  .tab-cards {
-    margin-top: 56px;
-  }
 </style>

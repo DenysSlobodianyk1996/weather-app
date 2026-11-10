@@ -1,16 +1,148 @@
+/*
+ * Slate theme (light only), taken from the design canvas in docs/design/project.
+ * Components use these tokens; no component sets a colour of its own.
+ */
+:root {
+  /* Palette */
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef1f4;
+  --color-border: #dfe4ea;
+  --color-border-subtle: #eef1f4;
+  --color-text: #1e2935;
+  --color-text-muted: #5b6878;
+  --color-accent: #3d6c9e;
+  --color-accent-hover: #2d5480;
+  --color-accent-soft: #e7eef6;
+  --color-accent-fill: rgba(61, 108, 158, 0.1);
+  --color-on-accent: #ffffff;
+  --color-danger: #9a3f37;
+  --color-backdrop: rgba(30, 41, 53, 0.45);
+  --color-shimmer: rgba(255, 255, 255, 0.5);
+
+  /* Soft temperature scale (chart points and bars) */
+  --color-temp-cool: #93c2bb;
+  --color-temp-warm: #cdbf86;
+
+  /* Brand */
+  --color-sun: #cdbf86;
+
+  /* Elevation */
+  --shadow-card: 0 1px 3px rgba(30, 41, 53, 0.06);
+  --shadow-popover: 0 8px 24px rgba(30, 41, 53, 0.12);
+  --shadow-dialog: 0 12px 40px rgba(30, 41, 53, 0.25);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --page-gutter: var(--space-6);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-dialog: 14px;
+  --radius-pill: 999px;
+
+  /* Sizes */
+  --control-height: 40px;
+  --content-max-width: 1200px;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 18px;
+  --line-height: 1.5;
+
+  /* Focus */
+  --focus-ring: 2px solid var(--color-accent);
+  --focus-offset: 2px;
+
+  color-scheme: light;
+}
+
+@media (max-width: 599px) {
+  :root {
+    --page-gutter: var(--space-4);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html, body, div[id="app"] {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height);
 }
 
 div[id="app"] {
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6, p {
   margin: 0;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* Tabular numbers for temperatures, times and counters */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visually hidden, still read by screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

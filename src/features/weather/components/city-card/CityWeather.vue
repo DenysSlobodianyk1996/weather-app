@@ -1,19 +1,15 @@
 <template>
   <div class="city-weather">
     <div class="city-weather__header">
-      <div class="city-weather__view-mode">
-        <Button
-          :class="{
-            active: viewMode === 'day'
-          }"
-          @click="setViewMode('day')">{{ t('viewMode.day') }}</Button>
-        <Button
-          :class="{
-            active: viewMode === 'week'
-          }"
-          @click="setViewMode('week')">{{ t('viewMode.week') }}</Button>
+      <div class="city-weather__details">
+        <slot name="cityDetails"></slot>
       </div>
-      <slot name="cityDetails"></slot>
+      <PillSwitch
+        class="city-weather__view-mode"
+        v-model="viewMode"
+        :label="t('viewMode.label')"
+        :options="viewModeOptions"
+      />
     </div>
 
     <template v-if="weather5Days3HoursForecastLoading">
@@ -21,16 +17,18 @@
     </template>
     <template v-else>
       <div class="city-weather__days-list">
-        <div class="days-list__tabs">
+        <div class="city-weather__days">
           <template v-if="viewMode === 'day'">
-            <Button class="active">{{ selectedDate }}</Button>
+            <span class="city-weather__date num">{{ selectedDate }}</span>
           </template>
           <template v-else>
             <template v-for="day in weatherForecastDays" :key="day">
-              <Button 
+              <Button
+                class="city-weather__day num"
                 :class="{
                   active: selectedDate === day
                 }"
+                :aria-pressed="selectedDate === day"
                 @click="selectDay(day)">{{ day }}</Button>
             </template>
           </template>
@@ -56,6 +54,7 @@
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
   import TemperatureChart from './TemperatureChart.vue'
   import Skeleton from '@/components/base/Skeleton.vue';
+  import PillSwitch from '@/components/base/PillSwitch.vue';
   import { useI18n } from 'vue-i18n';
 
   const { t } = useI18n();
@@ -84,6 +83,10 @@
   const weatherForecastDays = computed(() => Object.keys(weatherForecastGroupByDays.value));
 
   const viewMode = ref<WeatherViewMode>('day');
+  const viewModeOptions = computed<{ value: WeatherViewMode; label: string }[]>(() => [
+    { value: 'day', label: t('viewMode.day') },
+    { value: 'week', label: t('viewMode.week') },
+  ]);
   const selectedDate = ref<string>('');
 
   const selectedDateWeatherForecast = computed<WeatherList[]>(() => {
@@ -95,9 +98,6 @@
     return currentWeatherForecastGroupByDays[currentSelectedDate] ?? [];
   });
 
-  function setViewMode(newViewMode: WeatherViewMode) {
-    viewMode.value = newViewMode;
-  }
   function selectDay(newDay: string) {
     selectedDate.value = newDay ?? '';
   }
@@ -124,15 +124,54 @@
   .city-weather {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-5);
+    min-width: 0;
+
     &__header {
       display: flex;
       align-items: center;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: var(--space-4) var(--space-5);
     }
-    &__view-mode {
+
+    &__details {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    &__days-list {
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-width: 0;
+    }
+
+    &__days {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    &__date {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    // Two classes so these win over the base Button padding.
+    &__days &__day {
+      min-height: 32px;
+      padding: 0 var(--space-3);
+      font-size: var(--font-size-md);
+    }
+  }
+
+  @media (max-width: 599px) {
+    .city-weather {
+      gap: var(--space-4);
+
+      &__view-mode {
+        flex-basis: 100%;
+      }
     }
   }
 </style>

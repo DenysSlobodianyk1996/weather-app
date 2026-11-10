@@ -1,12 +1,9 @@
 <template>
-  <div>
-    <img :src="iconSrc" :alt="alt" />
-    <p>{{ alt }}</p>
-  </div>
+  <img class="day-weather-icon" :src="iconSrc" :alt="alt" :title="alt" width="28" height="28" />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+  import { computed } from 'vue';
 
   const props = defineProps<{
     icon: string;
@@ -19,8 +16,10 @@ import { computed } from 'vue';
 </script>
 
 <style lang="scss" scoped>
-  img {
-    width: 24px;
-    height: 24px;
+  .day-weather-icon {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    vertical-align: middle;
   }
 </style>

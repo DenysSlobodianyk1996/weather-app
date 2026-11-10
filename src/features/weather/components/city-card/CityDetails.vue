@@ -3,7 +3,7 @@
     <Skeleton height="18.5px" />
   </template>
   <template v-else>
-    <p>{{ cityDetails?.cityLabel ?? 'N/A' }}</p>
+    <h2 class="city-details__title">{{ cityDetails?.cityLabel ?? 'N/A' }}</h2>
   </template>
 </template>
 
@@ -56,4 +56,15 @@
 </script>
 
 <style lang="scss" scoped>
+  .city-details__title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  @media (max-width: 599px) {
+    .city-details__title {
+      font-size: 16px;
+    }
+  }
 </style>
