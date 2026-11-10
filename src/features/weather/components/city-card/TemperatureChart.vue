@@ -1,8 +1,8 @@
 <template>
   <figure class="temperature-chart">
-    <figcaption class="temperature-chart__caption">{{ t('weather.temperatureChart') }}</figcaption>
+    <figcaption class="temperature-chart__caption">{{ caption }}</figcaption>
     <div class="temperature-chart__canvas">
-      <canvas ref="chartCanvas" role="img" :aria-label="t('weather.temperatureChart')"></canvas>
+      <canvas ref="chartCanvas" role="img" :aria-label="caption"></canvas>
     </div>
   </figure>
 </template>
@@ -11,46 +11,33 @@
   import Chart from 'chart.js/auto';
   import { computed, onBeforeUnmount, onMounted, toRefs, useTemplateRef, watch } from 'vue';
   import type { WeatherViewMode } from '../../models';
-  import type { WeatherList } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { cssVar } from '@/utils';
 
   const { t } = useI18n();
 
   const props = defineProps<{
-    selectedDate: string,
     viewMode: WeatherViewMode,
-    weather5Days3HoursForecast: WeatherList[] | null,
+    /** One per point, in the Location's local time. */
+    labels: string[],
+    /** °C, one per label. */
+    temperatures: number[],
   }>();
   const {
-    selectedDate,
     viewMode,
-    weather5Days3HoursForecast
+    labels: chartLabels,
+    temperatures: chartTemperatures,
   } = toRefs(props);
+
+  const caption = computed(() => viewMode.value === 'day'
+    ? t('weather.temperatureTodayChart')
+    : t('weather.temperatureChart'));
 
   /** From this temperature (°C) up, points and bars use the warm colour of the soft scale. */
   const WARM_FROM_CELSIUS = 10;
 
   let chartObj: Chart | null = null;
   const canvasRef = useTemplateRef('chartCanvas');
-
-  const selectedDateWeatherForecast = computed(() => {
-    const currentSelectedDate = selectedDate.value;
-    return weather5Days3HoursForecast.value?.filter(item => item.dt_txt_day === currentSelectedDate);
-  });
-
-  const chartItems = computed(() => viewMode.value === 'week'
-    ? weather5Days3HoursForecast.value ?? []
-    : selectedDateWeatherForecast.value ?? []);
-
-  const chartLabels = computed(() => chartItems.value.map(({ dt_txt, dt_txt_time }) => {
-    // Day: "14:00"; Week: "11-10 14:00"
-    return viewMode.value === 'week'
-      ? dt_txt?.slice(5, 16) ?? ''
-      : dt_txt_time?.slice(0, 5) ?? '';
-  }));
-
-  const chartTemperatures = computed(() => chartItems.value.map(({ main }) => main?.temp ?? 0));
 
   function temperatureColors(temperatures: number[]) {
     const cool = cssVar('--color-temp-cool');
@@ -131,6 +118,10 @@
     });
   }
 
+  function sameItems<T>(a: readonly T[], b: readonly T[]) {
+    return a.length === b.length && a.every((item, index) => item === b[index]);
+  }
+
   function destroyChart() {
     chartObj?.destroy();
     chartObj = null;
@@ -147,8 +138,9 @@
 
   watch(
     () => [chartLabels.value, chartTemperatures.value] as const,
-    ([labels, temperatures]) => {
-      if(!chartObj) {
+    ([labels, temperatures], [oldLabels, oldTemperatures]) => {
+      // The card reshapes its forecast every minute; only redraw when the points really changed.
+      if(!chartObj || (sameItems(labels, oldLabels) && sameItems(temperatures, oldTemperatures))) {
         return;
       }
       chartObj.data.labels = labels;

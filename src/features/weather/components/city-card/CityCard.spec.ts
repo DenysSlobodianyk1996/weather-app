@@ -4,6 +4,8 @@ import i18n from '@/plugins/i18n'
 import { GeoapifyApiService, WeatherApiService, type RequestResult } from '@/services'
 import type { ForecastModel, WeatherList } from '@/models'
 import CityCard from './CityCard.vue'
+import TemperatureChart from './TemperatureChart.vue'
+import { forecastItems, utc } from '../../test-support/forecast-items'
 
 const kyiv = { lat: 50.45, lon: 30.52 }
 
@@ -114,6 +116,61 @@ describe('CityCard', () => {
 
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Loading forecast')
+  })
+
+  describe("in the city's local time", () => {
+    beforeEach(() => {
+      // Only Date is faked, so promises and the test-utils flush still run.
+      vi.useFakeTimers({ toFake: ['Date'], now: utc('2025-11-10T12:20:00') })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // The API gives Kyiv (UTC+2) slots from 12:00 UTC: 14:00 local onwards.
+    const kyivForecast: RequestResult<ForecastModel> = {
+      ok: true,
+      data: { list: forecastItems('2025-11-10T12:00:00', 16), timezoneOffset: 7200 },
+    }
+
+    it('shows the current conditions with the local date and time', async () => {
+      vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(kyivForecast)
+      const wrapper = mountCard()
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('overcast clouds · Feels like −2°')
+      expect(wrapper.text()).toContain('Mon, Nov 10 · 14:20 local time')
+    })
+
+    it("shows today's local times in the Day table and gives them to the chart", async () => {
+      vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(kyivForecast)
+      const wrapper = mountCard()
+      await flushPromises()
+
+      const timeRow = wrapper.findAll('tbody tr')[0]
+      expect(timeRow.findAll('td').map(td => td.text()))
+        .toEqual(['02:00', '05:00', '08:00', '11:00', '14:00', '17:00', '20:00', '23:00'])
+      expect(wrapper.findComponent(TemperatureChart).props()).toEqual({
+        viewMode: 'day',
+        labels: ['14:00', '17:00', '20:00', '23:00'],
+        temperatures: [0, 1, 2, 3],
+      })
+    })
+
+    it('keeps Week mode on local dates and times', async () => {
+      vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(kyivForecast)
+      const wrapper = mountCard()
+      await flushPromises()
+
+      await wrapper.findAll('button').find(button => button.text() === 'Week')!.trigger('click')
+
+      const chart = wrapper.findComponent(TemperatureChart).props()
+      expect(chart.viewMode).toBe('week')
+      expect(chart.labels.slice(0, 5)).toEqual(['11-10 14:00', '11-10 17:00', '11-10 20:00', '11-10 23:00', '11-11 02:00'])
+      expect(wrapper.findAll('.city-weather__day').map(button => button.text()))
+        .toEqual(['2025-11-10', '2025-11-11', '2025-11-12'])
+    })
   })
 
   it('sends the city name it loaded along with the heart click', async () => {

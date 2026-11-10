@@ -1,7 +1,10 @@
 <template>
   <div class="city-weather">
     <div class="city-weather__header">
-      <div class="city-weather__details">
+      <CurrentConditions v-if="!loading && shaped?.current" :current="shaped.current">
+        <slot name="cityDetails"></slot>
+      </CurrentConditions>
+      <div v-else class="city-weather__details">
         <slot name="cityDetails"></slot>
       </div>
       <PillSwitch
@@ -13,34 +16,25 @@
       <slot name="actions"></slot>
     </div>
 
-    <template v-if="weather5Days3HoursForecastLoading">
+    <template v-if="loading">
       <CityCardSkeleton :label="t('cityCard.loadingForecast')" />
     </template>
-    <template v-else>
+    <template v-else-if="shaped">
       <div class="city-weather__days-list">
-        <div class="city-weather__days">
-          <template v-if="viewMode === 'day'">
-            <span class="city-weather__date num">{{ selectedDate }}</span>
-          </template>
-          <template v-else>
-            <template v-for="day in weatherForecastDays" :key="day">
-              <Button
-                class="city-weather__day num"
-                :class="{
-                  active: selectedDate === day
-                }"
-                :aria-pressed="selectedDate === day"
-                @click="selectDay(day)">{{ day }}</Button>
-            </template>
-          </template>
+        <div v-if="viewMode === 'week'" class="city-weather__days">
+          <Button
+            v-for="day in shaped.days"
+            :key="day.localDate"
+            class="city-weather__day num"
+            :class="{ active: selectedDay?.localDate === day.localDate }"
+            :aria-pressed="selectedDay?.localDate === day.localDate"
+            @click="selectedDate = day.localDate">{{ day.localDate }}</Button>
         </div>
-        <template v-if="selectedDateWeatherForecast.length">
-          <DayWeatherSummary :selectedDateWeatherForecast="selectedDateWeatherForecast" />
-        </template>
+        <DayWeatherSummary v-if="selectedDay" :periods="selectedDay.periods" />
         <TemperatureChart
-          :selectedDate="selectedDate"  
           :viewMode="viewMode"
-          :weather5Days3HoursForecast="weather5Days3HoursForecast"
+          :labels="chartPoints.labels"
+          :temperatures="chartPoints.temperatures"
         />
       </div>
     </template>
@@ -49,76 +43,67 @@
 
 <script setup lang="ts">
   import Button from '@/components/base/Button.vue';
-  import { computed, ref, toRefs, watch } from 'vue';
+  import PillSwitch from '@/components/base/PillSwitch.vue';
+  import type { ForecastModel } from '@/models';
+  import { useNow } from '@/composables';
+  import { computed, ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import type { WeatherViewMode } from '../../models';
-  import type { WeatherList } from '@/models';
+  import { shapeForecast, type ForecastSlot } from '../../forecast';
+  import CityCardSkeleton from './CityCardSkeleton.vue';
+  import CurrentConditions from './CurrentConditions.vue';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
   import TemperatureChart from './TemperatureChart.vue'
-  import CityCardSkeleton from './CityCardSkeleton.vue';
-  import PillSwitch from '@/components/base/PillSwitch.vue';
-  import { useI18n } from 'vue-i18n';
 
   const { t } = useI18n();
 
   const props = defineProps<{
-    weather5Days3HoursForecast: WeatherList[] | null,
-    weather5Days3HoursForecastLoading: boolean
+    forecast: ForecastModel | null,
+    loading: boolean
   }>();
-  const {
-    weather5Days3HoursForecast,
-    weather5Days3HoursForecastLoading
-  } = toRefs(props);
 
-  const weatherForecastGroupByDays = computed(() => {
-    const groupedList: Record<string, WeatherList[]> = {};
-    weather5Days3HoursForecast.value?.forEach(item => {
-      const day = item.dt_txt_day!;
-      if(!groupedList[day]) {
-        groupedList[day] = []
-      }
-      groupedList[day].push(item);
-    });
-    return groupedList;
-  });
+  // Ticks every minute, so the local clock and "today" move on while the card stays open.
+  const now = useNow();
 
-  const weatherForecastDays = computed(() => Object.keys(weatherForecastGroupByDays.value));
+  const shaped = computed(() => props.forecast
+    ? shapeForecast(props.forecast.list, props.forecast.timezoneOffset, now.value)
+    : null);
 
   const viewMode = ref<WeatherViewMode>('day');
   const viewModeOptions = computed<{ value: WeatherViewMode; label: string }[]>(() => [
     { value: 'day', label: t('viewMode.day') },
     { value: 'week', label: t('viewMode.week') },
   ]);
-  const selectedDate = ref<string>('');
 
-  const selectedDateWeatherForecast = computed<WeatherList[]>(() => {
-    const currentSelectedDate = selectedDate.value;
-    const currentWeatherForecastGroupByDays = weatherForecastGroupByDays.value;
-    if(!currentSelectedDate || !currentWeatherForecastGroupByDays) {
-      return []
-    }
-    return currentWeatherForecastGroupByDays[currentSelectedDate] ?? [];
+  /** The local date picked in Week mode. Day view always shows today. */
+  const selectedDate = ref('');
+  watch(viewMode, () => {
+    selectedDate.value = '';
   });
 
-  function selectDay(newDay: string) {
-    selectedDate.value = newDay ?? '';
-  }
-
-  // Set init selected date
-  watch(
-    () => ({
-      newWeatherForecastDays: weatherForecastDays.value,
-      newViewMode: viewMode.value // when view mode changed - reset day to 1st day in list
-    }),
-    ({newWeatherForecastDays}) => {
-      const currentSelectedDateExists = newWeatherForecastDays?.find(day => day === selectedDate.value)
-      if(!currentSelectedDateExists) {
-        selectDay(newWeatherForecastDays?.at(0) ?? '');
-      }
-    },
-    {
-      immediate: true
+  const selectedDay = computed(() => {
+    if(!shaped.value) {
+      return null;
     }
-  );
+    if(viewMode.value === 'day') {
+      return shaped.value.today;
+    }
+    const { days } = shaped.value;
+    return days.find(day => day.localDate === selectedDate.value) ?? days[0] ?? null;
+  });
+
+  const chartPoints = computed(() => {
+    const slots: ForecastSlot[] = viewMode.value === 'day'
+      ? shaped.value?.today.slots ?? []
+      : shaped.value?.slots ?? [];
+    return {
+      // Day: "14:00"; Week: "11-10 14:00". Both local.
+      labels: slots.map(slot => viewMode.value === 'day'
+        ? slot.localTime
+        : `${slot.localDate.slice(5)} ${slot.localTime}`),
+      temperatures: slots.map(slot => slot.main?.temp ?? 0),
+    };
+  });
 </script>
 
 <style lang="scss" scoped>
@@ -151,11 +136,6 @@
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-2);
-    }
-
-    &__date {
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
     }
 
     // Two classes so these win over the base Button padding.

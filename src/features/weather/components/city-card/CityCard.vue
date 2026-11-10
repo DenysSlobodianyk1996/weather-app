@@ -23,8 +23,8 @@
       </template>
       <CityWeather
         v-else
-        :weather5Days3HoursForecast="forecastList"
-        :weather5Days3HoursForecastLoading="forecastLoading">
+        :forecast="forecast"
+        :loading="forecastLoading">
         <template #cityDetails>
           <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
         </template>
@@ -88,7 +88,6 @@
     load: loadForecast,
     retry: retryForecast,
   } = useAsyncData((request: ForcastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
-  const forecastList = computed(() => forecast.value?.list ?? null);
 
   // Load weather data
   watch(

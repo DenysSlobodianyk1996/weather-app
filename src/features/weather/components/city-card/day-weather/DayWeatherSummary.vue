@@ -3,128 +3,97 @@
     <table class="day-weather-summary__table num">
       <thead>
         <tr>
-          <template v-for="(col, index) in headCols" :key="index">
-            <th
-              :colspan="col.colspan"
-              :class="index === 0 ? 'row-label' : 'period-start'"
-              scope="col"
-            >
-              <template v-if="col.content">
-                {{ t(col.content) }}
-              </template>
-            </th>
-          </template>
+          <th class="row-label" scope="col"></th>
+          <th
+            v-for="period in periods"
+            :key="period.name"
+            :colspan="period.columns.length"
+            class="period-start"
+            scope="colgroup"
+          >{{ t(`dayTime.${period.name}`) }}</th>
         </tr>
       </thead>
       <tbody>
         <tr class="row-muted">
           <th class="row-label" scope="row">{{ t('weather.time') }}</th>
-          <td v-for="(timeKey, index) in timeKeys" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            {{ timeKey }}
+          <td v-for="(column, index) in columns" :key="index" :class="{ 'period-start': column.periodStart }">
+            {{ column.localTime }}
           </td>
-        </tr> <!-- Time-->
+        </tr>
 
         <tr>
           <th class="row-label" scope="row"><span class="sr-only">{{ t('weather.conditions') }}</span></th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.weather?.[0]">
-              <WeatherIcon :code="data.timeForecast.weather[0].icon" :description="data.timeForecast.weather[0].description" :size="28" />
-            </template>
+          <td v-for="(column, index) in columns" :key="index" :class="{ 'period-start': column.periodStart }">
+            <WeatherIcon
+              v-if="column.slot?.weather?.[0]"
+              :code="column.slot.weather[0].icon"
+              :description="column.slot.weather[0].description"
+              :size="28"
+            />
           </td>
-        </tr> <!-- Weather Icon -->
+        </tr>
 
-        <tr class="row-strong">
-          <th class="row-label" scope="row">{{ t('weather.temperature') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.main?.temp">
-              {{ data.timeForecast.main.temp }}&nbsp;&deg;C
-            </template>
+        <tr v-for="row in rows" :key="row.label" :class="row.className">
+          <th class="row-label" scope="row">{{ row.label }}</th>
+          <td v-for="(column, index) in columns" :key="index" :class="{ 'period-start': column.periodStart }">
+            <template v-if="column.slot">{{ row.value(column.slot) }}</template>
           </td>
-        </tr> <!-- Temperature -->
-
-        <tr>
-          <th class="row-label" scope="row">{{ t('weather.feelsLike') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.main?.feels_like">
-              {{ data.timeForecast.main.feels_like }}&nbsp;&deg;C
-            </template>
-          </td>
-        </tr> <!-- Feels Like -->
-
-        <tr>
-          <th class="row-label" scope="row">{{ t('weather.pressure') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.main?.pressure">
-              {{ data.timeForecast.main.pressure }}&nbsp;hPa
-            </template>
-          </td>
-        </tr> <!-- Pressure -->
-
-        <tr>
-          <th class="row-label" scope="row">{{ t('weather.humidity') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.main?.humidity">
-              {{ data.timeForecast.main.humidity }}&nbsp;&percnt;
-            </template>
-          </td>
-        </tr> <!-- Humidity -->
-
-        <tr>
-          <th class="row-label" scope="row">{{ t('weather.windSpeed') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.wind">
-              <p>{{ data.timeForecast.wind.deg }}&deg;&nbsp;{{ t('weather.directionDeg') }}</p>
-              <p>{{ data.timeForecast.wind.speed }}&nbsp;(m/s)</p>
-            </template>
-          </td>
-        </tr> <!-- Wind speed -->
-
-        <tr>
-          <th class="row-label" scope="row">{{ t('weather.visibility') }}</th>
-          <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
-            <template v-if="data?.timeForecast?.visibility">
-              {{ data.timeForecast.visibility }}&nbsp;{{ t('weather.meters') }}
-            </template>
-          </td>
-        </tr> <!-- Visibility -->
+        </tr>
       </tbody>
     </table>
   </div>
 </template>
 
 <script setup lang="ts">
-  import type { WeatherList } from '@/models';
-  import { computed, toRefs } from 'vue';
-  import WeatherIcon from '../../weather-icon/WeatherIcon.vue'
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import WeatherIcon from '../../weather-icon/WeatherIcon.vue'
+  import { compassPoint, formatTemperature, type DayPeriod, type ForecastSlot } from '../../../forecast';
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const props = defineProps<{
-    selectedDateWeatherForecast: WeatherList[]
+    /** One local day, as `shapeForecast` groups it. */
+    periods: DayPeriod[]
   }>();
-  const { selectedDateWeatherForecast } = toRefs(props);
 
-  const headCols = [
-    { content: '', colspan: 1, time: [] }, // Description
-    { content: 'dayTime.night', colspan: 2, time: ['00:00', '03:00'] },
-    { content: 'dayTime.morning', colspan: 2, time: ['06:00', '09:00'] },
-    { content: 'dayTime.day', colspan: 2, time: ['12:00', '15:00'] },
-    { content: 'dayTime.evening', colspan: 2, time: ['18:00', '21:00'] },
-  ];
+  const columns = computed(() => props.periods.flatMap(period =>
+    period.columns.map((column, index) => ({ ...column, periodStart: index === 0 }))));
 
-  const timeKeys = headCols.flatMap(item => item.time);
-  const timeKeysForecastData = computed(() => {
-    const currentSelectedDateWeatherForecast = selectedDateWeatherForecast.value;
-    return timeKeys.map(timeItem => {
-      const timeForecast = currentSelectedDateWeatherForecast.find(forecast => forecast.dt_txt_time?.startsWith(timeItem));
-      return {
-        time: timeItem,
-        timeForecast
-      };
-    });
-  }); // array with lenght 8 always (timeKeys.lenght)
+  const number = (value: number, maximumFractionDigits: number) =>
+    new Intl.NumberFormat(locale.value, { maximumFractionDigits }).format(value);
 
+  // Readings are checked against null, never truthiness, so 0 is shown.
+  const rows = computed<{ label: string; className?: string; value: (slot: ForecastSlot) => string }[]>(() => [
+    {
+      label: t('weather.temperature'),
+      className: 'row-strong',
+      value: slot => slot.main?.temp == null ? '' : formatTemperature(slot.main.temp),
+    },
+    {
+      label: t('weather.feelsLike'),
+      value: slot => slot.main?.feels_like == null ? '' : formatTemperature(slot.main.feels_like),
+    },
+    {
+      label: t('weather.humidity'),
+      value: slot => slot.main?.humidity == null ? '' : `${slot.main.humidity}%`,
+    },
+    {
+      label: t('weather.wind'),
+      value: slot => slot.wind?.speed == null
+        ? ''
+        : `${slot.wind.deg == null ? '' : `${t(`compass.${compassPoint(slot.wind.deg)}`)} `}`
+          + `${number(slot.wind.speed, 1)} ${t('units.metersPerSecond')}`,
+    },
+    {
+      label: t('weather.pressure'),
+      value: slot => slot.main?.pressure == null ? '' : `${Math.round(slot.main.pressure)} ${t('units.hectopascals')}`,
+    },
+    {
+      label: t('weather.visibility'),
+      value: slot => slot.visibility == null ? '' : `${number(slot.visibility / 1000, 1)} ${t('units.kilometers')}`,
+    },
+  ]);
 </script>
 
 <style lang="scss" scoped>
