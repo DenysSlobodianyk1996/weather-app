@@ -64,7 +64,7 @@ export default {
     localTime: '{time} local time',
     wind: 'Wind',
     visibility: 'Visibility',
-    temperatureChart: 'Temperature, °C',
+    dailyAverageChart: 'Daily average temperature, °C',
     temperatureTodayChart: 'Temperature today, °C',
   },
   units: {
@@ -85,10 +85,16 @@ export default {
   viewMode: {
     label: 'Forecast view',
     day: 'Day',
-    week: 'Week',
+    fiveDays: '5 days',
     tabsLabel: 'City lists',
     main: 'Main',
     favorite: 'Favorites',
+  },
+  fiveDays: {
+    label: '5-day forecast',
+    today: 'Today',
+    low: 'Low',
+    high: 'high',
   },
   dayTime: {
     night: 'Night',

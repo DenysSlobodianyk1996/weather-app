@@ -19,7 +19,7 @@ vi.mock('chart.js/auto', async () => {
   }
 })
 
-function mountChart(props: { viewMode: 'day' | 'week', labels: string[], temperatures: number[] }) {
+function mountChart(props: { viewMode: 'day' | 'fiveDays', labels: string[], temperatures: number[] }) {
   return mount(TemperatureChart, { props, global: { plugins: [i18n] }, attachTo: document.body })
 }
 
@@ -47,10 +47,23 @@ describe('TemperatureChart', () => {
     expect(wrapper.find('figcaption').text()).toBe('Temperature today, °C')
   })
 
-  it('draws bars in Week mode', () => {
-    mountChart({ viewMode: 'week', labels: ['11-10 14:00'], temperatures: [5] })
+  it('draws the 5-day view as one bar per Daily average', () => {
+    const wrapper = mountChart({ viewMode: 'fiveDays', labels: ['Today', 'Wed 11'], temperatures: [5, 4] })
 
-    expect(charts[0].config.type).toBe('bar')
+    const { config } = charts[0]
+    expect(config.type).toBe('bar')
+    expect(config.data.labels).toEqual(['Today', 'Wed 11'])
+    expect(config.data.datasets[0].data).toEqual([5, 4])
+    expect(wrapper.find('figcaption').text()).toBe('Daily average temperature, °C')
+  })
+
+  it('rebuilds the chart when the view changes', async () => {
+    const wrapper = mountChart({ viewMode: 'day', labels: ['14:00'], temperatures: [1] })
+    await wrapper.setProps({ viewMode: 'fiveDays', labels: ['Today'], temperatures: [1] })
+
+    expect(charts[0].destroy).toHaveBeenCalled()
+    expect(charts).toHaveLength(2)
+    expect(charts[1].config.type).toBe('bar')
   })
 
   it('updates the chart when the data changes', async () => {

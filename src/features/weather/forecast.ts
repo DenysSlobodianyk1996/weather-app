@@ -15,6 +15,9 @@ const DAY_MS = 24 * HOUR_MS
 const SLOT_MS = 3 * HOUR_MS
 const DAY_PERIOD_HOURS = 24 / DAY_PERIODS.length
 const SLOTS_PER_DAY = DAY_MS / SLOT_MS
+/** Local days in the 5-day view, today included. */
+const FIVE_DAYS = 5
+const MIDDAY_MS = 12 * HOUR_MS
 
 /** One 3-hour step of the forecast, with its start in the Location's local time. */
 export interface ForecastSlot extends WeatherList {
@@ -46,6 +49,22 @@ export interface ForecastDay {
   periods: DayPeriod[]
 }
 
+/** One row of the 5-day view: a local day summed up by its Forecast slots that are still in the forecast. */
+export interface DailyForecast {
+  localDate: string
+  /** Local midnight that starts the day, as a local timestamp (ms). */
+  localTimestamp: number
+  isToday: boolean
+  /** Mean of the day's slot temperatures, °C. */
+  dailyAverage: number
+  /** Lowest slot temperature, °C. */
+  low: number
+  /** Highest slot temperature, °C. */
+  high: number
+  /** The slot nearest local midday; its weather gives the day's icon and description. */
+  middaySlot: ForecastSlot
+}
+
 export interface CurrentConditions {
   /** The Forecast slot nearest now. */
   slot: ForecastSlot
@@ -60,6 +79,8 @@ export interface ShapedForecast {
   today: ForecastDay
   /** Each local date that has slots, in order. */
   days: ForecastDay[]
+  /** Today and the next 4 local days, leaving out any that has no slots. */
+  fiveDays: DailyForecast[]
   current: CurrentConditions | null
 }
 
@@ -87,11 +108,15 @@ export function shapeForecast(list: WeatherList[], timezoneOffset: number, now: 
 
   const days = [...slotsByDate.keys()].map(toDay)
   const todayDate = isoDate(now + offsetMs)
+  const lastDate = isoDate(Date.parse(`${todayDate}T00:00:00Z`) + (FIVE_DAYS - 1) * DAY_MS)
 
   return {
     slots,
     today: days.find(day => day.localDate === todayDate) ?? toDay(todayDate),
     days,
+    fiveDays: days
+      .filter(day => day.localDate >= todayDate && day.localDate <= lastDate)
+      .map(day => dailyForecast(day, todayDate)),
     current: currentConditions(slots, now, offsetMs),
   }
 }
@@ -120,6 +145,24 @@ function buildDay(localDate: string, slots: ForecastSlot[], gridPhase: number): 
   }
 
   return { localDate, slots, periods }
+}
+
+/** @param day A day with at least one slot. */
+function dailyForecast({ localDate, slots }: ForecastDay, todayDate: string): DailyForecast {
+  const localTimestamp = Date.parse(`${localDate}T00:00:00Z`)
+  const temperatures = slots.map(slot => slot.main.temp)
+  const fromMidday = (slot: ForecastSlot) => Math.abs(slot.localTimestamp - (localTimestamp + MIDDAY_MS))
+
+  return {
+    localDate,
+    localTimestamp,
+    isToday: localDate === todayDate,
+    dailyAverage: temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length,
+    low: Math.min(...temperatures),
+    high: Math.max(...temperatures),
+    // On a tie the earlier slot wins.
+    middaySlot: slots.reduce((nearest, candidate) => fromMidday(candidate) < fromMidday(nearest) ? candidate : nearest),
+  }
 }
 
 function currentConditions(slots: ForecastSlot[], now: number, offsetMs: number): CurrentConditions | null {
@@ -155,6 +198,21 @@ export function formatLocalDate(localTimestamp: number, locale: string): string 
     month: 'short',
     timeZone: 'UTC',
   }).format(localTimestamp)
+}
+
+/** Short weekday of a local timestamp in the given language, e.g. "Wed" / "ср". */
+export function formatWeekday(localTimestamp: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(localTimestamp)
+}
+
+/** Day and short month of a local timestamp in the given language, e.g. "Nov 12" / "12 лист.". */
+export function formatDayMonth(localTimestamp: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(localTimestamp)
+}
+
+/** Short weekday and day of month of a local timestamp, e.g. "Wed 12" / "ср 12". */
+export function formatShortDay(localTimestamp: number, locale: string): string {
+  return `${formatWeekday(localTimestamp, locale)} ${new Date(localTimestamp).getUTCDate()}`
 }
 
 export const COMPASS_POINTS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const

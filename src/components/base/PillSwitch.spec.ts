@@ -4,7 +4,7 @@ import PillSwitch from './PillSwitch.vue'
 
 const options = [
   { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
+  { value: 'fiveDays', label: '5 days' },
 ]
 
 describe('PillSwitch', () => {
@@ -13,15 +13,15 @@ describe('PillSwitch', () => {
 
     expect(wrapper.attributes('role')).toBe('group')
     expect(wrapper.attributes('aria-label')).toBe('Forecast view')
-    expect(wrapper.findAll('button').map(button => button.text())).toEqual(['Day', 'Week'])
+    expect(wrapper.findAll('button').map(button => button.text())).toEqual(['Day', '5 days'])
   })
 
   it('marks the current option as pressed', () => {
-    const wrapper = mount(PillSwitch, { props: { modelValue: 'week', options, label: 'Forecast view' } })
-    const [day, week] = wrapper.findAll('button')
+    const wrapper = mount(PillSwitch, { props: { modelValue: 'fiveDays', options, label: 'Forecast view' } })
+    const [day, fiveDays] = wrapper.findAll('button')
 
     expect(day.attributes('aria-pressed')).toBe('false')
-    expect(week.attributes('aria-pressed')).toBe('true')
+    expect(fiveDays.attributes('aria-pressed')).toBe('true')
   })
 
   it('emits the option that was clicked', async () => {
@@ -29,6 +29,6 @@ describe('PillSwitch', () => {
 
     await wrapper.findAll('button')[1].trigger('click')
 
-    expect(wrapper.emitted('update:modelValue')).toEqual([['week']])
+    expect(wrapper.emitted('update:modelValue')).toEqual([['fiveDays']])
   })
 })

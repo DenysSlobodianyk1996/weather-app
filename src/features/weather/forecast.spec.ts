@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   compassPoint,
   formatLocalDate,
+  formatDayMonth,
   formatLocalTime,
+  formatShortDay,
   formatTemperature,
+  formatWeekday,
   shapeForecast,
   type ForecastDay,
 } from './forecast'
@@ -136,6 +139,98 @@ describe('shapeForecast', () => {
     expect(columnTimes(forecast.today))
       .toEqual(['02:00', '05:00', '08:00', '11:00', '14:00', '17:00', '20:00', '23:00'])
     expect(filledTimes(forecast.today)).toEqual([])
+  })
+})
+
+describe('5-day forecast', () => {
+  /** Items with the given temperatures, 3 hours apart from `fromUtc`. */
+  const withTemps = (fromUtc: string, temps: number[]) =>
+    forecastItems(fromUtc, temps.length).map((item, index) => ({ ...item, main: { ...item.main, temp: temps[index] } }))
+
+  const fiveDays = (fromUtc: string, temps: number[], offset: number, now: string) =>
+    shapeForecast(withTemps(fromUtc, temps), offset, utc(now)).fiveDays
+
+  it('gives each day its Daily average, low and high from its slot temperatures', () => {
+    // Kyiv +2: 00:00Z is 02:00 local, so the first 8 items are one whole local day.
+    const [day] = fiveDays('2025-11-10T00:00:00', [1, 3, 5, 7, 9, 6, 2, -1], KYIV_WINTER, '2025-11-09T23:00:00')
+
+    expect(day).toMatchObject({ localDate: '2025-11-10', isToday: true, dailyAverage: 4, low: -1, high: 9 })
+  })
+
+  it("averages only today's slots that are still in the forecast", () => {
+    // Kyiv +2, now 12:20 UTC: today keeps 14:00, 17:00, 20:00 and 23:00 local.
+    const [today, tomorrow] = fiveDays('2025-11-10T12:00:00', [10, 8, 6, 0, 2, 2, 2, 2, 2, 2, 2, 2], KYIV_WINTER, '2025-11-10T12:20:00')
+
+    expect(today).toMatchObject({ localDate: '2025-11-10', isToday: true, dailyAverage: 6, low: 0, high: 10 })
+    expect(tomorrow).toMatchObject({ localDate: '2025-11-11', isToday: false, dailyAverage: 2, low: 2, high: 2 })
+  })
+
+  it('keeps 0 °C as the Daily average, low and high', () => {
+    const [day] = fiveDays('2025-11-10T12:00:00', [0, 0], KYIV_WINTER, '2025-11-10T12:00:00')
+
+    expect(day).toMatchObject({ dailyAverage: 0, low: 0, high: 0 })
+  })
+
+  it("takes the icon and description from the slot nearest local midday", () => {
+    const list = forecastItems('2025-11-10T00:00:00', 8).map(item => ({
+      ...item,
+      weather: [{ id: 800, main: 'Clear', description: `at ${item.dt_txt_time}`, icon: '01d' }],
+    }))
+    // Delhi +5:30: local slots 05:30 … 23:30 (and 02:30 the next day); 11:30 is nearest midday.
+    const [day] = shapeForecast(list, DELHI, utc('2025-11-10T00:00:00')).fiveDays
+
+    expect(day.middaySlot.localTime).toBe('11:30')
+    expect(day.middaySlot.weather[0].description).toBe('at 06:00:00')
+  })
+
+  it("uses today's nearest remaining slot to midday when the morning has passed", () => {
+    const [today] = shapeForecast(forecastItems('2025-11-10T15:00:00', 3), KYIV_WINTER, utc('2025-11-10T15:00:00')).fiveDays
+
+    expect(today.middaySlot.localTime).toBe('17:00')
+  })
+
+  it('shows today and the next 4 local days, and no more', () => {
+    // 40 slots from 12:00 UTC cover 6 local dates in Kyiv.
+    const forecast = shapeForecast(forecastItems('2025-11-10T12:00:00', 40), KYIV_WINTER, utc('2025-11-10T12:20:00'))
+
+    expect(forecast.days.map(day => day.localDate)).toHaveLength(6)
+    expect(forecast.fiveDays.map(day => day.localDate))
+      .toEqual(['2025-11-10', '2025-11-11', '2025-11-12', '2025-11-13', '2025-11-14'])
+    expect(forecast.fiveDays.map(day => day.isToday)).toEqual([true, false, false, false, false])
+  })
+
+  it('starts the 5 days on the local date across local midnight, while UTC is still on the old one', () => {
+    // Kyiv +3: 21:30 UTC on the 10th is 00:30 local on the 11th. 21:00 UTC is the 11th's first slot.
+    const forecast = shapeForecast(forecastItems('2025-06-10T18:00:00', 40), KYIV_SUMMER, utc('2025-06-10T21:30:00'))
+
+    expect(forecast.fiveDays.map(day => day.localDate))
+      .toEqual(['2025-06-11', '2025-06-12', '2025-06-13', '2025-06-14', '2025-06-15'])
+    expect(forecast.fiveDays[0].localTimestamp).toBe(utc('2025-06-11T00:00:00'))
+    // The 21:00 local slot of the 10th (temp 0) is yesterday; the 11th starts with 00:00 local (temp 1).
+    expect(forecast.fiveDays[0].low).toBe(1)
+  })
+
+  it('leaves out a day that has no slots', () => {
+    expect(shapeForecast([], KYIV_WINTER, utc('2025-11-10T12:00:00')).fiveDays).toEqual([])
+  })
+})
+
+describe('day labels', () => {
+  const wednesday = utc('2025-11-12T00:00:00')
+
+  it('gives the short weekday in the current language', () => {
+    expect(formatWeekday(wednesday, 'en')).toBe('Wed')
+    expect(formatWeekday(wednesday, 'uk')).toBe('ср')
+  })
+
+  it('gives the day and month in the current language', () => {
+    expect(formatDayMonth(wednesday, 'en')).toBe('Nov 12')
+    expect(formatDayMonth(wednesday, 'uk')).toBe('12 лист.')
+  })
+
+  it('gives a short weekday and day of month for chart labels', () => {
+    expect(formatShortDay(wednesday, 'en')).toBe('Wed 12')
+    expect(formatShortDay(wednesday, 'uk')).toBe('ср 12')
   })
 })
 

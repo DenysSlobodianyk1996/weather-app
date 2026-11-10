@@ -158,18 +158,27 @@ describe('CityCard', () => {
       })
     })
 
-    it('keeps Week mode on local dates and times', async () => {
+    it('switches between "Day" and "5 days", with one chart bar per Daily average', async () => {
       vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(kyivForecast)
       const wrapper = mountCard()
       await flushPromises()
 
-      await wrapper.findAll('button').find(button => button.text() === 'Week')!.trigger('click')
+      const switchLabels = wrapper.findAll('[role="group"] button').map(button => button.text())
+      expect(switchLabels).toEqual(['Day', '5 days'])
+      await wrapper.findAll('button').find(button => button.text() === '5 days')!.trigger('click')
 
-      const chart = wrapper.findComponent(TemperatureChart).props()
-      expect(chart.viewMode).toBe('week')
-      expect(chart.labels.slice(0, 5)).toEqual(['11-10 14:00', '11-10 17:00', '11-10 20:00', '11-10 23:00', '11-11 02:00'])
-      expect(wrapper.findAll('.city-weather__day').map(button => button.text()))
-        .toEqual(['2025-11-10', '2025-11-11', '2025-11-12'])
+      // Today 14:00–23:00 local is 0–3 (mean 1.5), the 11th is 4–11 (7.5), the 12th 12–15 (13.5).
+      expect(wrapper.findAll('.five-day-forecast li')).toHaveLength(3)
+      expect(wrapper.find('tbody').exists()).toBe(false)
+      expect(wrapper.findComponent(TemperatureChart).props()).toEqual({
+        viewMode: 'fiveDays',
+        labels: ['Today', 'Tue 11', 'Wed 12'],
+        temperatures: [2, 8, 14],
+      })
+
+      await wrapper.findAll('button').find(button => button.text() === 'Day')!.trigger('click')
+      expect(wrapper.find('.five-day-forecast').exists()).toBe(false)
+      expect(wrapper.findComponent(TemperatureChart).props('viewMode')).toBe('day')
     })
   })
 

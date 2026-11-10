@@ -64,7 +64,7 @@ export default {
     localTime: '{time} за місцевим часом',
     wind: 'Вітер',
     visibility: 'Видимість',
-    temperatureChart: 'Температура, °C',
+    dailyAverageChart: 'Середня денна температура, °C',
     temperatureTodayChart: 'Температура сьогодні, °C',
   },
   units: {
@@ -85,10 +85,16 @@ export default {
   viewMode: {
     label: 'Вид прогнозу',
     day: 'День',
-    week: 'Тиждень',
+    fiveDays: '5 днів',
     tabsLabel: 'Списки міст',
     main: 'Головна',
     favorite: 'Обране',
+  },
+  fiveDays: {
+    label: 'Прогноз на 5 днів',
+    today: 'Сьогодні',
+    low: 'Мінімум',
+    high: 'максимум',
   },
   dayTime: {
     night: 'Ніч',

@@ -20,17 +20,9 @@
       <CityCardSkeleton :label="t('cityCard.loadingForecast')" />
     </template>
     <template v-else-if="shaped">
-      <div class="city-weather__days-list">
-        <div v-if="viewMode === 'week'" class="city-weather__days">
-          <Button
-            v-for="day in shaped.days"
-            :key="day.localDate"
-            class="city-weather__day num"
-            :class="{ active: selectedDay?.localDate === day.localDate }"
-            :aria-pressed="selectedDay?.localDate === day.localDate"
-            @click="selectedDate = day.localDate">{{ day.localDate }}</Button>
-        </div>
-        <DayWeatherSummary v-if="selectedDay" :periods="selectedDay.periods" />
+      <div class="city-weather__forecast">
+        <DayWeatherSummary v-if="viewMode === 'day'" :periods="shaped.today.periods" />
+        <FiveDayForecast v-else :days="shaped.fiveDays" />
         <TemperatureChart
           :viewMode="viewMode"
           :labels="chartPoints.labels"
@@ -42,20 +34,20 @@
 </template>
 
 <script setup lang="ts">
-  import Button from '@/components/base/Button.vue';
   import PillSwitch from '@/components/base/PillSwitch.vue';
   import type { ForecastModel } from '@/models';
   import { useNow } from '@/composables';
-  import { computed, ref, watch } from 'vue';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { WeatherViewMode } from '../../models';
-  import { shapeForecast, type ForecastSlot } from '../../forecast';
+  import { formatShortDay, shapeForecast } from '../../forecast';
   import CityCardSkeleton from './CityCardSkeleton.vue';
   import CurrentConditions from './CurrentConditions.vue';
   import DayWeatherSummary from './day-weather/DayWeatherSummary.vue'
+  import FiveDayForecast from './FiveDayForecast.vue'
   import TemperatureChart from './TemperatureChart.vue'
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const props = defineProps<{
     forecast: ForecastModel | null,
@@ -72,36 +64,26 @@
   const viewMode = ref<WeatherViewMode>('day');
   const viewModeOptions = computed<{ value: WeatherViewMode; label: string }[]>(() => [
     { value: 'day', label: t('viewMode.day') },
-    { value: 'week', label: t('viewMode.week') },
+    { value: 'fiveDays', label: t('viewMode.fiveDays') },
   ]);
 
-  /** The local date picked in Week mode. Day view always shows today. */
-  const selectedDate = ref('');
-  watch(viewMode, () => {
-    selectedDate.value = '';
-  });
-
-  const selectedDay = computed(() => {
+  const chartPoints = computed(() => {
     if(!shaped.value) {
-      return null;
+      return { labels: [], temperatures: [] };
     }
     if(viewMode.value === 'day') {
-      return shaped.value.today;
+      // Today's slots at their local times, e.g. "14:00".
+      const { slots } = shaped.value.today;
+      return {
+        labels: slots.map(slot => slot.localTime),
+        temperatures: slots.map(slot => slot.main?.temp ?? 0),
+      };
     }
-    const { days } = shaped.value;
-    return days.find(day => day.localDate === selectedDate.value) ?? days[0] ?? null;
-  });
-
-  const chartPoints = computed(() => {
-    const slots: ForecastSlot[] = viewMode.value === 'day'
-      ? shaped.value?.today.slots ?? []
-      : shaped.value?.slots ?? [];
+    // One bar per Daily average, rounded like the rows show it: "Today", "Wed 12", …
+    const days = shaped.value.fiveDays;
     return {
-      // Day: "14:00"; Week: "11-10 14:00". Both local.
-      labels: slots.map(slot => viewMode.value === 'day'
-        ? slot.localTime
-        : `${slot.localDate.slice(5)} ${slot.localTime}`),
-      temperatures: slots.map(slot => slot.main?.temp ?? 0),
+      labels: days.map(day => day.isToday ? t('fiveDays.today') : formatShortDay(day.localTimestamp, locale.value)),
+      temperatures: days.map(day => Math.round(day.dailyAverage)),
     };
   });
 </script>
@@ -125,24 +107,11 @@
       min-width: 0;
     }
 
-    &__days-list {
+    &__forecast {
       display: flex;
       flex-direction: column;
       gap: var(--space-4);
       min-width: 0;
-    }
-
-    &__days {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-
-    // Two classes so these win over the base Button padding.
-    &__days &__day {
-      min-height: 32px;
-      padding: 0 var(--space-3);
-      font-size: var(--font-size-md);
     }
   }
 

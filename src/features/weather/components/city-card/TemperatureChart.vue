@@ -31,7 +31,7 @@
 
   const caption = computed(() => viewMode.value === 'day'
     ? t('weather.temperatureTodayChart')
-    : t('weather.temperatureChart'));
+    : t('weather.dailyAverageChart'));
 
   /** From this temperature (°C) up, points and bars use the warm colour of the soft scale. */
   const WARM_FROM_CELSIUS = 10;
@@ -48,7 +48,7 @@
   function buildDataset(temperatures: number[]) {
     const scale = temperatureColors(temperatures);
     const label = t('weather.temperature');
-    if(viewMode.value === 'week') {
+    if(viewMode.value === 'fiveDays') {
       return {
         label,
         data: temperatures,
@@ -81,7 +81,7 @@
     const font = { family: cssVar('--font-sans'), size: 12 };
 
     chartObj = new Chart(context, {
-      type: viewMode.value === 'week' ? 'bar' : 'line',
+      type: viewMode.value === 'fiveDays' ? 'bar' : 'line',
       data: {
         labels: chartLabels.value,
         datasets: [buildDataset(chartTemperatures.value)],
@@ -130,7 +130,7 @@
   onMounted(createChart);
   onBeforeUnmount(destroyChart);
 
-  // Day view is a filled line and Week view is bars, so a mode change rebuilds the chart.
+  // Day view is a filled line and the 5-day view is bars, so a mode change rebuilds the chart.
   watch(viewMode, () => {
     destroyChart();
     createChart();
