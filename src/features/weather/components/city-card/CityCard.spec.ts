@@ -29,7 +29,7 @@ function pending<T>() {
 
 function mountCard() {
   return mount(CityCard, {
-    props: { cityCard: { id: 1, cityLocation: kyiv } },
+    props: { cityLocation: kyiv },
     global: {
       plugins: [i18n],
       stubs: { TemperatureChart: true },
@@ -106,7 +106,7 @@ describe('CityCard', () => {
     const wrapper = mountCard()
     await flushPromises()
 
-    await wrapper.setProps({ cityCard: { id: 1, cityLocation: lviv } })
+    await wrapper.setProps({ cityLocation: lviv })
     lvivRequest.resolve(forecast)
     await flushPromises()
     kyivRequest.resolve(failed)

@@ -113,7 +113,7 @@ describe('GeoapifyApiService', () => {
       mock.onGet('geocode/autocomplete').reply(200, {
         features: [
           { properties: { lat: 50.45, lon: 30.52, place_id: 'p1', city: 'Kyiv', country: 'Ukraine' } },
-          { properties: { lat: 50.45, lon: 30.52, place_id: 'p2', city: 'Kyiv', country: 'Ukraine' } },
+          { properties: { lat: 50.4512, lon: 30.5188, place_id: 'p2', city: 'Kyiv', country: 'Ukraine' } },
           { properties: { lat: 49.84, lon: 24.03, place_id: 'p3', city: 'Lviv', country: 'Ukraine' } },
         ],
       })

@@ -1,5 +1,5 @@
 import type { CityDetailsRequest, LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
-import { uniqueByProps } from '@/utils';
+import { uniqueLocations } from '@/utils';
 import { request } from './request.service';
 
 // Geocoding answers don't change while the page is open.
@@ -42,7 +42,7 @@ export const GeoapifyApiService = {
       ttl: GEOCODING_TTL_MS,
       parse: raw => {
         const searchResult = raw.features.map(({ properties }: any) => getSearchCitiesResultModel(properties));
-        return uniqueByProps(searchResult, ['lat', 'lon']) as SearchCitiesResultModel[];
+        return uniqueLocations(searchResult.filter(Boolean) as SearchCitiesResultModel[]);
       },
     });
   }

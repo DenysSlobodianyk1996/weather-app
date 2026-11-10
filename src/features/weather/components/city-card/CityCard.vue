@@ -1,18 +1,23 @@
 <template>
   <section class="city-card" :class="{ 'city-card--favorite': isFavorite }">
     <CityCardToolbar
+      v-if="variant === 'main'"
       :has-location="!!cityLocation"
-      :is-favorite="!!isFavorite"
+      :is-favorite="isFavorite"
       :hide-remove-action="hideRemoveAction"
-      :hide-favorite-action="hideFavoriteAction"
-      @select="selectCity($event)"
-      @toggle-favorite="toggleFavorite"
-      @remove="emit('remove', cityCard.id)"
+      @select="emit('select', $event)"
+      @toggle-favorite="emit('toggleFavorite')"
+      @remove="emit('remove')"
     />
 
     <template v-if="!!cityLocation">
       <template v-if="forecastError">
-        <CityDetails :cityLocation="cityLocation" />
+        <div class="city-card__header">
+          <div class="city-card__details">
+            <CityDetails :cityLocation="cityLocation" />
+          </div>
+          <RemoveFavoriteButton v-if="variant === 'favorite'" @remove="emit('remove')" />
+        </div>
         <ForecastError @retry="retryForecast" />
       </template>
       <CityWeather
@@ -22,14 +27,16 @@
         <template #cityDetails>
           <CityDetails :cityLocation="cityLocation" />
         </template>
+        <template v-if="variant === 'favorite'" #actions>
+          <RemoveFavoriteButton @remove="emit('remove')" />
+        </template>
       </CityWeather>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-  import { computed, toRefs, watch } from 'vue';
-  import type { CityCardModel } from '../../models';
+  import { computed, watch } from 'vue';
   import type { ForcastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
@@ -38,28 +45,33 @@
   import CityDetails from './CityDetails.vue'
   import CityWeather from './CityWeather.vue'
   import ForecastError from './ForecastError.vue'
+  import RemoveFavoriteButton from './RemoveFavoriteButton.vue'
 
   const { locale } = useI18n()
 
-  const props = defineProps<{
-    cityCard: CityCardModel,
-    hideRemoveAction?: boolean,
-    hideFavoriteAction?: boolean,
-  }>();
-
-  const {
-    cityCard,
-    hideRemoveAction,
-    hideFavoriteAction,
-  } = toRefs(props);
-
-  const cityLocation = computed(() => cityCard.value.cityLocation);
-  const isFavorite = computed(() => cityCard.value.isFavorite);
+  const props = withDefaults(defineProps<{
+    cityLocation?: LocationModel
+    /** The Location is a Favorite. Worked out by the City cards module, never stored on the card. */
+    isFavorite?: boolean
+    /**
+     * `main`: the toolbar with city search, my location, heart and delete.
+     * `favorite`: no toolbar; a "Remove" button next to the Day / 5 days switch.
+     */
+    variant?: 'main' | 'favorite'
+    hideRemoveAction?: boolean
+  }>(), {
+    isFavorite: false,
+    variant: 'main',
+  });
 
   const emit = defineEmits<{
-    update: [cityCard: CityCardModel],
-    remove: [id: number]
+    select: [cityLocation: LocationModel]
+    toggleFavorite: []
+    /** `main`: delete the card (confirmed). `favorite`: remove the Favorite. */
+    remove: []
   }>();
+
+  const cityLocation = computed(() => props.cityLocation);
 
   const {
     data: forecast,
@@ -69,24 +81,6 @@
     retry: retryForecast,
   } = useAsyncData((request: ForcastRequestModel) => WeatherApiService.get5Days3HoursForecast(request));
   const forecastList = computed(() => forecast.value?.list ?? null);
-
-  function toggleFavorite() {
-    const newIsFavorite = !cityCard.value.isFavorite;
-    const newCityCard: CityCardModel = {
-      ...cityCard.value,
-      isFavorite: newIsFavorite
-    }
-    emit('update', newCityCard)
-  }
-
-  function selectCity(newCityLocation: LocationModel) {
-    const newCityCard: CityCardModel = {
-      ...cityCard.value,
-      cityLocation: newCityLocation,
-      isFavorite: false
-    }
-    emit('update', newCityCard)
-  }
 
   // Load weather data
   watch(
@@ -103,7 +97,8 @@
       }
       loadForecast({
         lang: lastLocale,
-        ...lastLocation
+        lat: lastLocation.lat,
+        lon: lastLocation.lon,
       });
     },
     {
@@ -123,6 +118,18 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-card);
+
+    &__header {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4) var(--space-5);
+    }
+
+    &__details {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
 
     &--favorite {
       border-color: var(--color-accent);

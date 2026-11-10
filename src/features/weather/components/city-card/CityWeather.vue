@@ -10,6 +10,7 @@
         :label="t('viewMode.label')"
         :options="viewModeOptions"
       />
+      <slot name="actions"></slot>
     </div>
 
     <template v-if="weather5Days3HoursForecastLoading">

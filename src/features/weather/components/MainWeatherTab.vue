@@ -1,40 +1,42 @@
 <template>
   <div class="tab-cards">
-    <section v-if="loading" class="card-placeholder">
-      <CityCardSkeleton with-toolbar :label="t('cityCards.findingLocation')" />
-    </section>
-    <template v-for="cityCard in cityCards" :key="cityCard.id">
+    <template v-for="card in cards" :key="card.id">
+      <section v-if="card.id === loadingCardId" class="card-placeholder">
+        <CityCardSkeleton with-toolbar :label="t('cityCards.findingLocation')" />
+      </section>
       <CityCard
-        :city-card="cityCard"
-        :hide-remove-action="cityCards.length <= 1"
-        @remove="emit('remove', $event)"
-        @update="emit('update', $event)"
+        v-else
+        :city-location="card.cityLocation"
+        :is-favorite="card.isFavorite"
+        :hide-remove-action="cards.length <= 1"
+        @select="emit('select', card.id, $event)"
+        @toggle-favorite="emit('toggleFavorite', card.id)"
+        @remove="emit('remove', card.id)"
       />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { toRefs } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import type { CityCardModel } from '../models';
+  import type { LocationModel } from '@/models';
+  import type { CityCard as CityCardModel } from '../city-cards';
   import CityCard from './city-card/CityCard.vue';
   import CityCardSkeleton from './city-card/CityCardSkeleton.vue';
 
   const { t } = useI18n();
 
-  const props = defineProps<{
-    cityCards: CityCardModel[]
-    /** The first City card is still waiting for the IP Location. */
-    loading?: boolean
+  defineProps<{
+    cards: CityCardModel[]
+    /** This card is still waiting for the IP Location, so it shows a placeholder. */
+    loadingCardId?: number
   }>();
-  const { cityCards, loading } = toRefs(props);
 
   const emit = defineEmits<{
-    update: [cityCard: CityCardModel],
+    select: [id: number, cityLocation: LocationModel]
+    toggleFavorite: [id: number]
     remove: [id: number]
   }>();
-
 </script>
 
 <style lang="scss" scoped>

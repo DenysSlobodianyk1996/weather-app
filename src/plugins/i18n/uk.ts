@@ -23,10 +23,16 @@ export default {
     counter: '{n} з {max} міст',
     findingLocation: 'Визначаємо ваше місцезнаходження',
   },
+  favorites: {
+    counter: '{n} з {max} в обраному',
+    emptyTitle: 'Обраних міст ще немає',
+    emptyHint: 'Натисніть на сердечко на картці міста на вкладці «Головна», щоб зберегти його тут. Можна зберегти до {max}.',
+  },
   cityCard: {
     useMyLocation: 'Моє місцезнаходження',
     addToFavorites: 'Додати в обране',
     removeFromFavorites: 'Прибрати з обраного',
+    remove: 'Прибрати',
     deleteCard: 'Видалити картку',
     loadingForecast: 'Завантаження прогнозу',
     forecastFailed: 'Не вдалося завантажити прогноз',

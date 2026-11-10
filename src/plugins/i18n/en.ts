@@ -23,10 +23,16 @@ export default {
     counter: '{n} of {max} cities',
     findingLocation: 'Finding your location',
   },
+  favorites: {
+    counter: '{n} of {max} favorites',
+    emptyTitle: 'No favorite cities yet',
+    emptyHint: 'Tap the heart on a city card on the Main tab to keep it here. You can save up to {max}.',
+  },
   cityCard: {
     useMyLocation: 'Use my location',
     addToFavorites: 'Add to favorites',
     removeFromFavorites: 'Remove from favorites',
+    remove: 'Remove',
     deleteCard: 'Delete card',
     loadingForecast: 'Loading forecast',
     forecastFailed: "Couldn't load the forecast",

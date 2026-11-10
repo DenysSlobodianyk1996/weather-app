@@ -3,21 +3,26 @@
     <WeatherTabs
       :id="tabsId"
       v-model="weatherTabMode"
-      :main-count="cityCards.length"
-      :favorite-count="favoriteCityCards.length"
+      :main-count="cards.length"
+      :favorite-count="favorites.length"
     >
       <template #actions v-if="weatherTabMode === 'main'">
         <span class="weather-feature__counter num">
-          {{ t('cityCards.counter', { n: cityCards.length, max: MAX_CITY_CARDS_AMOUNT }) }}
+          {{ t('cityCards.counter', { n: cards.length, max: MAX_CITY_CARDS }) }}
         </span>
         <Button
           variant="primary"
           class="weather-feature__add"
-          @click="addCityCard"
+          @click="addCard"
         >
           <span class="material-icons" aria-hidden="true">add</span>
           <span class="weather-feature__add-label">{{ t('cityCards.addCity') }}</span>
         </Button>
+      </template>
+      <template #actions v-else>
+        <span class="weather-feature__counter weather-feature__counter--favorites num">
+          {{ t('favorites.counter', { n: favorites.length, max: MAX_FAVORITES }) }}
+        </span>
       </template>
     </WeatherTabs>
 
@@ -26,42 +31,46 @@
       role="tabpanel"
       :aria-labelledby="`${tabsId}-${weatherTabMode}`"
     >
-      <template v-if="weatherTabMode === 'main'">
-        <MainWeatherTab
-          :cityCards="cityCards"
-          :loading="ipLocationLoading"
-          @update="updateCityCard($event)"
-          @remove="removeCityCard($event)"
-        />
-      </template>
-      <template v-else>
-        <FavoriteWeatherTab
-          :favoriteCityCards="favoriteCityCards"
-          @remove="removeFavoriteCityCard($event)"
-        />
-      </template>
+      <MainWeatherTab
+        v-if="weatherTabMode === 'main'"
+        :cards="cards"
+        :loading-card-id="ipLocationLoading ? firstCardId : undefined"
+        @select="cityCards.setCardLocation"
+        @toggle-favorite="toggleFavorite"
+        @remove="cityCards.removeCard"
+      />
+      <FavoriteWeatherTab
+        v-else
+        :favorites="favorites"
+        @remove="cityCards.removeFavorite"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import type { CityCardModel, WeatherTabMode } from './models';
+  import type { WeatherTabMode } from './models';
   import MainWeatherTab from './components/MainWeatherTab.vue';
   import FavoriteWeatherTab from './components/FavoriteWeatherTab.vue';
   import WeatherTabs from './components/WeatherTabs.vue';
-  import { onMounted, ref, useId, watch } from 'vue';
-  import { GeoapifyApiService, StorageService } from '@/services';
-  import { generateId, isEqualLocation } from '@/utils';
-  import { FAVORITE_CITIES_KEY, MAX_CITY_CARDS_AMOUNT } from '@/static';
-  import type { LocationModel } from '@/models';
+  import { ref, useId } from 'vue';
+  import { GeoapifyApiService } from '@/services';
   import Button from '@/components/base/Button.vue';
   import { useAsyncData } from '@/composables';
   import { useI18n } from 'vue-i18n';
+  import { MAX_CITY_CARDS, MAX_FAVORITES } from './city-cards';
+  import { useCityCards } from './use-city-cards';
 
   const { t } = useI18n();
 
-  const cityCards = ref<CityCardModel[]>([]);
-  const favoriteCityCards = ref<CityCardModel[]>([]);
+  // All City card and Favorite rules live in the City cards module; this component only shows them.
+  const cityCards = useCityCards(localStorage);
+  const { cards, favorites } = cityCards;
+  // The card the app starts with; the IP Location fills it.
+  const firstCardId = cards.value[0].id;
+
+  const tabsId = useId();
+  const weatherTabMode = ref<WeatherTabMode>('main');
 
   const {
     data: ipLocation,
@@ -69,131 +78,25 @@
     load: loadIpLocation,
   } = useAsyncData(() => GeoapifyApiService.getIpLocation());
 
-  // Tab mode logic
-  const tabsId = useId();
-  const weatherTabMode = ref<WeatherTabMode>('main')
-
-  // Init city cards
-  function initialyzeCityCards() {
-    const favoriteLocations: LocationModel[] = StorageService.getItem(FAVORITE_CITIES_KEY, true);
-    const predefinedLocations = favoriteLocations?.length > 0 ? favoriteLocations : null;
-
-    if(predefinedLocations?.length) {
-      // Define Favorite list
-      const initFavoriteCityCards: CityCardModel[] = predefinedLocations.map(cityLocation => ({
-        id: generateId(),
-        cityLocation,
-        isFavorite: true
-      }));
-      favoriteCityCards.value = initFavoriteCityCards;
+  // A failed lookup leaves the first card empty, so the user can search for a city.
+  loadIpLocation().then(() => {
+    if(ipLocation.value) {
+      cityCards.fillFirstCard(ipLocation.value);
     }
+  });
 
-    loadIpLocation()
-      .then(() => {
-        // A failed lookup leaves the first card empty, so the user can search for a city.
-        const cityLocation = ipLocation.value ?? undefined;
-        // Load ip location. If it was in favorite - use same obj values.
-        const ipLocationCityCardInFavorite = favoriteCityCards.value.find(item => isEqualLocation(item.cityLocation!, cityLocation))
-        const initCityCard: CityCardModel = ipLocationCityCardInFavorite ?? {
-          id: generateId(),
-          cityLocation,
-          isFavorite: false
-        };
-        cityCards.value = [initCityCard]
-      });
-  }
-
-  // Main tab city cards logic
-  function addCityCard() {
-    if(cityCards.value.length === MAX_CITY_CARDS_AMOUNT) {
+  // TODO(#9): show the limit modals instead of alert().
+  function addCard() {
+    if(!cityCards.addCard().ok) {
       alert(t('message.maxCards'));
-      return;
-    }
-    const newCityCard: CityCardModel = {
-      id: generateId()
-    };
-    cityCards.value = [
-      newCityCard,
-      ...cityCards.value
-    ];
-  }
-  function updateCityCard(changedCityCard: CityCardModel) {
-    const cardIndex = cityCards.value.findIndex(item => item.id === changedCityCard.id);
-    if(cardIndex === -1) {
-      return;
-    }
-    const cityCardsCopy = [...cityCards.value];
-    const oldCityCard = cityCardsCopy[cardIndex];
-
-    // Location changed
-    if(
-      (!oldCityCard.cityLocation && !!changedCityCard.cityLocation) ||
-      !isEqualLocation(oldCityCard.cityLocation!, changedCityCard.cityLocation!)
-    ) {
-      cityCardsCopy[cardIndex] = changedCityCard;
-      cityCards.value = cityCardsCopy;
-      return;
-    }
-
-    // Is favorite changed
-    if(oldCityCard.isFavorite !== changedCityCard.isFavorite) {
-      if(changedCityCard.isFavorite && favoriteCityCards.value.length === 5) {
-        alert(t('message.maxFavoriteCards'));
-        return;
-      }
-
-      // update main city cards list
-      cityCardsCopy[cardIndex] = changedCityCard;
-      cityCards.value = cityCardsCopy;
-
-      if(changedCityCard.isFavorite) {
-        // Add item to favorite list
-        favoriteCityCards.value = [
-          changedCityCard,
-          ...favoriteCityCards.value
-        ];
-      } else {
-        // Remove item to favorite list
-        favoriteCityCards.value = favoriteCityCards.value.filter(item => item.id !== changedCityCard.id);
-      }
-      return;
     }
   }
-  function removeCityCard(id: number) {
-    if(cityCards.value.length === 1) {
-      return;
+
+  function toggleFavorite(id: number) {
+    if(!cityCards.toggleFavorite(id).ok) {
+      alert(t('message.maxFavoriteCards'));
     }
-    cityCards.value = cityCards.value.filter(item => item.id !== id);
   }
-
-  // Favorite tab city cards logic
-  function removeFavoriteCityCard(id: number) {
-    favoriteCityCards.value = favoriteCityCards.value.filter(item => item.id !== id);
-    
-    const favoriteCityCardInMain = cityCards.value.find(card => card.id === id);
-    if(!favoriteCityCardInMain) {
-      return;
-    }
-    updateCityCard({
-      ...favoriteCityCardInMain,
-      isFavorite: false
-    });
-  }
-
-  // Init component
-  onMounted(() => {
-    initialyzeCityCards();
-  })
-
-  // Save favorites to storage
-  watch(
-    () => favoriteCityCards.value,
-    updatedFavoriteCityCards => {
-      const storageFavoriteCities: LocationModel[] = updatedFavoriteCityCards
-        .map(({ cityLocation }) => cityLocation!);
-      StorageService.setItem(FAVORITE_CITIES_KEY, storageFavoriteCities)
-    }
-  )
 </script>
 
 <style lang="scss" scoped>
@@ -209,9 +112,9 @@
     }
   }
 
-  // Phones: icon-only "Add city"; the counter and label stay for screen readers.
+  // Phones: icon-only "Add city"; its counter and label stay for screen readers.
   @media (max-width: 599px) {
-    .weather-feature__counter,
+    .weather-feature__counter:not(.weather-feature__counter--favorites),
     .weather-feature__add-label {
       position: absolute;
       width: 1px;

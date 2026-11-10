@@ -13,7 +13,7 @@
     <div class="card-toolbar__spacer"></div>
 
     <Button
-      v-if="hasLocation && !hideFavoriteAction"
+      v-if="hasLocation"
       icon
       :class="{ active: isFavorite }"
       :aria-label="isFavorite ? t('cityCard.removeFromFavorites') : t('cityCard.addToFavorites')"
@@ -59,7 +59,6 @@
     hasLocation: boolean
     isFavorite: boolean
     hideRemoveAction?: boolean
-    hideFavoriteAction?: boolean
   }>();
 
   const emit = defineEmits<{

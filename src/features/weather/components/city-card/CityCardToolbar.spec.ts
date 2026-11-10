@@ -8,7 +8,6 @@ type ToolbarProps = {
   hasLocation?: boolean
   isFavorite?: boolean
   hideRemoveAction?: boolean
-  hideFavoriteAction?: boolean
 }
 
 function mountToolbar(props: ToolbarProps = {}) {
@@ -74,10 +73,9 @@ describe('CityCardToolbar', () => {
     expect(wrapper.find(byLabel('Add to favorites')).exists()).toBe(false)
   })
 
-  it('hides the heart and the delete button when asked to', () => {
-    const wrapper = mountToolbar({ hideFavoriteAction: true, hideRemoveAction: true })
+  it('hides the delete button when asked to', () => {
+    const wrapper = mountToolbar({ hideRemoveAction: true })
 
-    expect(wrapper.find(byLabel('Add to favorites')).exists()).toBe(false)
     expect(wrapper.find(byLabel('Delete card')).exists()).toBe(false)
   })
 
