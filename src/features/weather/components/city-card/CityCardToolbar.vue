@@ -25,7 +25,8 @@
 
     <ConfirmDialog
       v-if="!hideRemoveAction"
-      :id="dialogId"
+      danger
+      :confirm-label="t('deleteCard.confirm')"
       @confirm="emit('remove')"
     >
       <template #dialogActivator="{ props: activatorProps }">
@@ -37,15 +38,20 @@
           <span class="material-icons" aria-hidden="true">delete_outline</span>
         </Button>
       </template>
-      <template #dialogContent>
-        <h3>{{ t('message.deleteThisCard') }}</h3>
+      <template #title>
+        {{ cityName ? t('deleteCard.title', { city: cityName }) : t('deleteCard.titleNoCity') }}
       </template>
+      <p>
+        {{ t('deleteCard.removedFromMain') }}
+        <template v-if="isFavorite">
+          {{ t('deleteCard.staysInFavorites', { city: cityName ?? t('deleteCard.thisCity') }) }}
+        </template>
+      </p>
     </ConfirmDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useId } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { LocationModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
@@ -59,6 +65,8 @@
     hasLocation: boolean
     isFavorite: boolean
     hideRemoveAction?: boolean
+    /** The card's city as its heading shows it, once loaded. Named in the delete confirmation. */
+    cityName?: string
   }>();
 
   const emit = defineEmits<{
@@ -66,8 +74,6 @@
     toggleFavorite: []
     remove: []
   }>();
-
-  const dialogId = useId();
 
   function selectMyLocation() {
     GeoapifyApiService.getIpLocation()

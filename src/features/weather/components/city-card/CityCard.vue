@@ -5,8 +5,9 @@
       :has-location="!!cityLocation"
       :is-favorite="isFavorite"
       :hide-remove-action="hideRemoveAction"
+      :city-name="cityName"
       @select="emit('select', $event)"
-      @toggle-favorite="emit('toggleFavorite')"
+      @toggle-favorite="emit('toggleFavorite', cityName)"
       @remove="emit('remove')"
     />
 
@@ -14,7 +15,7 @@
       <template v-if="forecastError">
         <div class="city-card__header">
           <div class="city-card__details">
-            <CityDetails :cityLocation="cityLocation" />
+            <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
           </div>
           <RemoveFavoriteButton v-if="variant === 'favorite'" @remove="emit('remove')" />
         </div>
@@ -25,7 +26,7 @@
         :weather5Days3HoursForecast="forecastList"
         :weather5Days3HoursForecastLoading="forecastLoading">
         <template #cityDetails>
-          <CityDetails :cityLocation="cityLocation" />
+          <CityDetails :cityLocation="cityLocation" @name="cityName = $event" />
         </template>
         <template v-if="variant === 'favorite'" #actions>
           <RemoveFavoriteButton @remove="emit('remove')" />
@@ -36,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, watch } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import type { ForcastRequestModel, LocationModel } from '@/models';
   import { useI18n } from 'vue-i18n';
   import { WeatherApiService } from '@/services';
@@ -66,12 +67,19 @@
 
   const emit = defineEmits<{
     select: [cityLocation: LocationModel]
-    toggleFavorite: []
+    /** Carries the city name, so a "Favorites are full" modal can name it. */
+    toggleFavorite: [cityName: string | undefined]
     /** `main`: delete the card (confirmed). `favorite`: remove the Favorite. */
     remove: []
   }>();
 
   const cityLocation = computed(() => props.cityLocation);
+
+  /** The city name CityDetails loaded for this card. Used by the delete confirmation and the Favorites limit modal. */
+  const cityName = ref<string>();
+  watch(cityLocation, () => {
+    cityName.value = undefined;
+  });
 
   const {
     data: forecast,

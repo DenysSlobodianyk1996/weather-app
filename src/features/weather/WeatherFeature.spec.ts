@@ -47,6 +47,14 @@ const buttonWithText = (wrapper: Wrapper, text: string) =>
 const hearts = (wrapper: Wrapper) =>
   panel(wrapper).findAll('button[aria-pressed]').filter(button => button.text().startsWith('favorite'))
 
+const openModal = (wrapper: Wrapper) => wrapper.findAll('dialog').find(dialog => dialog.attributes('open') !== undefined)
+const modalTitle = (wrapper: Wrapper, modal: ReturnType<Wrapper['find']>) =>
+  wrapper.find(`#${modal.attributes('aria-labelledby')}`).text()
+
+function fillFavorites() {
+  saveFavorites([1, 2, 3, 4, 5].map(n => ({ lat: n, lon: n })))
+}
+
 async function openTab(wrapper: Wrapper, name: string) {
   await tab(wrapper, name).trigger('click')
   await flushPromises()
@@ -54,7 +62,10 @@ async function openTab(wrapper: Wrapper, name: string) {
 
 describe('WeatherFeature', () => {
   beforeEach(() => {
-    vi.spyOn(GeoapifyApiService, 'getCityDetails').mockResolvedValue({ ok: true, data: null })
+    vi.spyOn(GeoapifyApiService, 'getCityDetails').mockImplementation(async ({ lat, lon }) => ({
+      ok: true,
+      data: lat === kyiv.lat && lon === kyiv.lon ? { ...kyiv, place_id: 'kyiv', cityLabel: 'Kyiv, Ukraine' } : null,
+    }))
     vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockReturnValue(new Promise(() => {}))
   })
 
@@ -138,32 +149,96 @@ describe('WeatherFeature', () => {
     expect(panel(wrapper).findAll('section.city-card')).toHaveLength(2)
   })
 
-  it('tells the user when the City cards are full', async () => {
-    const alert = vi.fn()
-    vi.stubGlobal('alert', alert)
+  it('shows the City cards limit modal when a 6th card is added', async () => {
     mockIpLocation(kyiv)
     const wrapper = await mountFeature()
 
     for(let i = 0; i < 5; i++) {
       await buttonWithText(wrapper, 'Add city')!.trigger('click')
     }
+    await flushPromises()
 
     expect(panel(wrapper).findAll('section.city-card')).toHaveLength(5)
     expect(wrapper.text()).toContain('5 of 5 cities')
-    expect(alert).toHaveBeenCalledTimes(1)
+    const modal = openModal(wrapper)!
+    expect(modalTitle(wrapper, modal)).toBe('City cards are full')
+    expect(modal.text()).toContain('You can show up to 5 cities on the Main tab. Delete a card to add another one.')
+    expect(modal.findAll('button').map(button => button.text())).toEqual(['OK'])
+
+    await modal.find('button').trigger('click')
+    await flushPromises()
+    expect(openModal(wrapper)).toBeUndefined()
   })
 
-  it('tells the user when the Favorites are full', async () => {
-    const alert = vi.fn()
-    vi.stubGlobal('alert', alert)
-    saveFavorites([1, 2, 3, 4, 5].map(n => ({ lat: n, lon: n })))
+  it('shows the Favorites limit modal naming the city when a 6th Favorite is saved', async () => {
+    fillFavorites()
     mockIpLocation(kyiv)
     const wrapper = await mountFeature()
 
     await panel(wrapper).find('button[aria-label="Add to favorites"]').trigger('click')
+    await flushPromises()
 
-    expect(alert).toHaveBeenCalledTimes(1)
     expect(hearts(wrapper).map(heart => heart.attributes('aria-pressed'))).toEqual(['false'])
     expect(tab(wrapper, 'Favorites').text()).toContain('5')
+    const modal = openModal(wrapper)!
+    expect(modalTitle(wrapper, modal)).toBe('Favorites are full')
+    expect(modal.text()).toContain('You can keep up to 5 favorite cities. To add Kyiv, Ukraine, remove one of your favorites first.')
+    expect(modal.findAll('button').map(button => button.text())).toEqual(['Open Favorites', 'OK'])
+
+    await buttonWithText(modal as unknown as Wrapper, 'OK')!.trigger('click')
+    await flushPromises()
+    expect(openModal(wrapper)).toBeUndefined()
+    expect(tab(wrapper, 'Main').attributes('aria-selected')).toBe('true')
+  })
+
+  it('opens the Favorites tab from the Favorites limit modal', async () => {
+    fillFavorites()
+    mockIpLocation(kyiv)
+    const wrapper = await mountFeature()
+
+    await panel(wrapper).find('button[aria-label="Add to favorites"]').trigger('click')
+    await flushPromises()
+    await buttonWithText(openModal(wrapper) as unknown as Wrapper, 'Open Favorites')!.trigger('click')
+    await flushPromises()
+
+    expect(openModal(wrapper)).toBeUndefined()
+    expect(tab(wrapper, 'Favorites').attributes('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(tab(wrapper, 'Favorites').element)
+    expect(wrapper.text()).toContain('5 of 5 favorites')
+  })
+
+  it('closes the limit modals on Escape', async () => {
+    fillFavorites()
+    mockIpLocation(kyiv)
+    const wrapper = await mountFeature()
+
+    await panel(wrapper).find('button[aria-label="Add to favorites"]').trigger('click')
+    await flushPromises()
+    await openModal(wrapper)!.trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(openModal(wrapper)).toBeUndefined()
+
+    for(let i = 0; i < 5; i++) {
+      await buttonWithText(wrapper, 'Add city')!.trigger('click')
+    }
+    await flushPromises()
+    await openModal(wrapper)!.trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(openModal(wrapper)).toBeUndefined()
+  })
+
+  it('never falls back to alert() for the limits', async () => {
+    const alert = vi.fn()
+    vi.stubGlobal('alert', alert)
+    fillFavorites()
+    mockIpLocation(kyiv)
+    const wrapper = await mountFeature()
+
+    await panel(wrapper).find('button[aria-label="Add to favorites"]').trigger('click')
+    for(let i = 0; i < 5; i++) {
+      await buttonWithText(wrapper, 'Add city')!.trigger('click')
+    }
+
+    expect(alert).not.toHaveBeenCalled()
   })
 })

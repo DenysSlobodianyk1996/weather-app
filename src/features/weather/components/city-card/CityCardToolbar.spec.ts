@@ -8,6 +8,7 @@ type ToolbarProps = {
   hasLocation?: boolean
   isFavorite?: boolean
   hideRemoveAction?: boolean
+  cityName?: string
 }
 
 function mountToolbar(props: ToolbarProps = {}) {
@@ -19,6 +20,8 @@ function mountToolbar(props: ToolbarProps = {}) {
 }
 
 const byLabel = (label: string) => `button[aria-label="${label}"]`
+const buttonIn = (wrapper: ReturnType<typeof mountToolbar>, selector: string, text: string) =>
+  wrapper.find(selector).findAll('button').find(button => button.text() === text)!
 
 describe('CityCardToolbar', () => {
   afterEach(() => {
@@ -79,17 +82,61 @@ describe('CityCardToolbar', () => {
     expect(wrapper.find(byLabel('Delete card')).exists()).toBe(false)
   })
 
-  it('asks for removal only after the delete is confirmed', async () => {
+  it('asks for removal only after the delete is confirmed, then closes', async () => {
     const wrapper = mountToolbar()
 
     await wrapper.find(byLabel('Delete card')).trigger('click')
     expect(wrapper.find('dialog').attributes('open')).toBeDefined()
     expect(wrapper.emitted('remove')).toBeUndefined()
 
-    const confirm = wrapper.findAll('dialog button').find(button => button.text() === 'Confirm')!
-    await confirm.trigger('click')
+    await buttonIn(wrapper, 'dialog', 'Delete').trigger('click')
+    await flushPromises()
 
     expect(wrapper.emitted('remove')).toHaveLength(1)
+    expect(wrapper.find('dialog').attributes('open')).toBeUndefined()
+  })
+
+  it('names the city in the delete confirmation and says it stays in Favorites', async () => {
+    const wrapper = mountToolbar({ cityName: 'Lviv, Ukraine', isFavorite: true })
+
+    await wrapper.find(byLabel('Delete card')).trigger('click')
+    const dialog = wrapper.find('dialog')
+
+    expect(wrapper.find(`#${dialog.attributes('aria-labelledby')}`).text()).toBe('Delete the Lviv, Ukraine card?')
+    expect(dialog.text()).toContain('The card is removed from the Main tab. Lviv, Ukraine stays in your favorites.')
+  })
+
+  it('does not promise a Favorite that does not exist', async () => {
+    const wrapper = mountToolbar({ cityName: 'Lviv, Ukraine', isFavorite: false })
+
+    await wrapper.find(byLabel('Delete card')).trigger('click')
+
+    expect(wrapper.find('dialog').text()).toContain('The card is removed from the Main tab.')
+    expect(wrapper.find('dialog').text()).not.toContain('favorites')
+  })
+
+  it('asks about "this card" while the city name is unknown', async () => {
+    const wrapper = mountToolbar({ hasLocation: false })
+
+    await wrapper.find(byLabel('Delete card')).trigger('click')
+
+    expect(wrapper.find('dialog h2').text()).toBe('Delete this card?')
+  })
+
+  it('closes the delete confirmation without removing on Cancel or Escape', async () => {
+    const wrapper = mountToolbar()
+
+    await wrapper.find(byLabel('Delete card')).trigger('click')
+    await buttonIn(wrapper, 'dialog', 'Cancel').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('dialog').attributes('open')).toBeUndefined()
+
+    await wrapper.find(byLabel('Delete card')).trigger('click')
+    await wrapper.find('dialog').trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(wrapper.find('dialog').attributes('open')).toBeUndefined()
+
+    expect(wrapper.emitted('remove')).toBeUndefined()
   })
 
   it('selects the IP Location when "Use my location" is clicked', async () => {

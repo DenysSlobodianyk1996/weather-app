@@ -10,7 +10,7 @@
         :is-favorite="card.isFavorite"
         :hide-remove-action="cards.length <= 1"
         @select="emit('select', card.id, $event)"
-        @toggle-favorite="emit('toggleFavorite', card.id)"
+        @toggle-favorite="emit('toggleFavorite', card.id, $event)"
         @remove="emit('remove', card.id)"
       />
     </template>
@@ -34,7 +34,7 @@
 
   const emit = defineEmits<{
     select: [id: number, cityLocation: LocationModel]
-    toggleFavorite: [id: number]
+    toggleFavorite: [id: number, cityName: string | undefined]
     remove: [id: number]
   }>();
 </script>

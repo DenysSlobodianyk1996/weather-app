@@ -45,6 +45,13 @@
         @remove="cityCards.removeFavorite"
       />
     </div>
+
+    <LimitModal
+      :limit="limitModal?.limit ?? null"
+      :city-name="limitModal?.cityName"
+      @close="limitModal = null"
+      @open-favorites="openFavorites"
+    />
   </div>
 </template>
 
@@ -53,7 +60,8 @@
   import MainWeatherTab from './components/MainWeatherTab.vue';
   import FavoriteWeatherTab from './components/FavoriteWeatherTab.vue';
   import WeatherTabs from './components/WeatherTabs.vue';
-  import { ref, useId } from 'vue';
+  import LimitModal, { type Limit } from './components/LimitModal.vue';
+  import { nextTick, ref, useId } from 'vue';
   import { GeoapifyApiService } from '@/services';
   import Button from '@/components/base/Button.vue';
   import { useAsyncData } from '@/composables';
@@ -85,17 +93,26 @@
     }
   });
 
-  // TODO(#9): show the limit modals instead of alert().
+  // The limit modal that is open, if any. The City cards module says when a limit is hit; this shows it.
+  const limitModal = ref<{ limit: Limit, cityName?: string } | null>(null);
+
   function addCard() {
     if(!cityCards.addCard().ok) {
-      alert(t('message.maxCards'));
+      limitModal.value = { limit: 'cards' };
     }
   }
 
-  function toggleFavorite(id: number) {
+  function toggleFavorite(id: number, cityName: string | undefined) {
     if(!cityCards.toggleFavorite(id).ok) {
-      alert(t('message.maxFavoriteCards'));
+      limitModal.value = { limit: 'favorites', cityName };
     }
+  }
+
+  // The heart that opened the modal goes away with the Main tab, so focus goes to the Favorites tab instead.
+  function openFavorites() {
+    limitModal.value = null;
+    weatherTabMode.value = 'favorite';
+    nextTick(() => document.getElementById(`${tabsId}-favorite`)?.focus());
   }
 </script>
 

@@ -12,13 +12,18 @@
   import type { CityDetailsRequest, LocationModel, SearchCitiesResultModel } from '@/models';
   import { GeoapifyApiService } from '@/services';
   import { useAsyncData } from '@/composables';
-  import { watch } from 'vue';
+  import { computed, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   const { locale } = useI18n()
 
   const props = defineProps<{
     cityLocation: LocationModel,
+  }>();
+
+  const emit = defineEmits<{
+    /** The city name the heading shows, or undefined while it loads or when it is unknown. */
+    name: [cityName: string | undefined]
   }>();
 
   const {
@@ -47,6 +52,10 @@
       immediate: true
     }
   )
+
+  // The card names the city in its modals, so it gets the name from here instead of loading it again.
+  const cityName = computed(() => (loading.value ? undefined : cityDetails.value?.cityLabel));
+  watch(cityName, name => emit('name', name), { immediate: true });
 </script>
 
 <style lang="scss" scoped>

@@ -115,4 +115,24 @@ describe('CityCard', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Loading forecast')
   })
+
+  it('sends the city name it loaded along with the heart click', async () => {
+    vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(forecast)
+    const wrapper = mountCard()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Add to favorites"]').trigger('click')
+
+    expect(wrapper.emitted('toggleFavorite')).toEqual([['Kyiv, Ukraine']])
+  })
+
+  it('names the city in its delete confirmation', async () => {
+    vi.spyOn(WeatherApiService, 'get5Days3HoursForecast').mockResolvedValue(forecast)
+    const wrapper = mountCard()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Delete card"]').trigger('click')
+
+    expect(wrapper.find('dialog h2').text()).toBe('Delete the Kyiv, Ukraine card?')
+  })
 })
