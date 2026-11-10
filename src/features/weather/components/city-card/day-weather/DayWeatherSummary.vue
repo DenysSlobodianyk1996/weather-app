@@ -28,7 +28,7 @@
           <th class="row-label" scope="row"><span class="sr-only">{{ t('weather.conditions') }}</span></th>
           <td v-for="(data, index) in timeKeysForecastData" :key="index" :class="{ 'period-start': index % 2 === 0 }">
             <template v-if="data?.timeForecast?.weather?.[0]">
-              <DayWeatherIcon :icon="data?.timeForecast?.weather?.[0].icon" :alt="data?.timeForecast?.weather?.[0].description" />
+              <WeatherIcon :code="data.timeForecast.weather[0].icon" :description="data.timeForecast.weather[0].description" :size="28" />
             </template>
           </td>
         </tr> <!-- Weather Icon -->
@@ -95,7 +95,7 @@
 <script setup lang="ts">
   import type { WeatherList } from '@/models';
   import { computed, toRefs } from 'vue';
-  import DayWeatherIcon from './DayWeatherIcon.vue'
+  import WeatherIcon from '../../weather-icon/WeatherIcon.vue'
   import { useI18n } from 'vue-i18n';
 
   const { t } = useI18n();

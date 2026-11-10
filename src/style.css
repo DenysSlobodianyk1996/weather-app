@@ -27,6 +27,9 @@
   /* Brand */
   --color-sun: #cdbf86;
 
+  /* Weather icons (the rest of the artwork uses the palette above) */
+  --color-snow: #8fb0d8;
+
   /* Elevation */
   --shadow-card: 0 1px 3px rgba(30, 41, 53, 0.06);
   --shadow-popover: 0 8px 24px rgba(30, 41, 53, 0.12);
