@@ -1,7 +1,7 @@
 import type { ForcastRequestModel, WeatherList } from '@/models';
 import axios from 'axios'
 
-const openweathermapApi = axios.create({
+export const openweathermapApi = axios.create({
   baseURL: 'https://api.openweathermap.org/data',
   timeout: 2000,
 });

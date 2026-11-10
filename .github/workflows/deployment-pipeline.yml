@@ -30,9 +30,31 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
       - name: Install dependencies
-        run: npm install
-  
+        run: npm ci
+
+      # A failing test fails this job, so the build and deploy never run.
+      # Coverage is reported only; no percentage can fail the job.
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage.txt ]; then
+            {
+              echo '### Test coverage'
+              echo '```'
+              cat coverage/coverage.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Build
         run: npm run build
 
