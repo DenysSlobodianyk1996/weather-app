@@ -95,7 +95,7 @@ describe('CityCardToolbar', () => {
   })
 
   it('selects the IP Location when "Use my location" is clicked', async () => {
-    vi.spyOn(GeoapifyApiService, 'getIpLocation').mockResolvedValue({ lat: 50.45, lon: 30.52 })
+    vi.spyOn(GeoapifyApiService, 'getIpLocation').mockResolvedValue({ ok: true, data: { lat: 50.45, lon: 30.52 } })
     const wrapper = mountToolbar()
 
     await wrapper.find(byLabel('Use my location')).trigger('click')

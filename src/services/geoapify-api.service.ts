@@ -1,92 +1,50 @@
 import type { CityDetailsRequest, LocationModel, SearchCitiesRequest, SearchCitiesResultModel } from '@/models';
 import { uniqueByProps } from '@/utils';
-import axios from 'axios'
+import { request } from './request.service';
 
-const geoapifyApi = axios.create({
-  baseURL: 'https://api.geoapify.com/v1',
-  timeout: 2000,
-});
-
-geoapifyApi.interceptors.request.use(config => {
-  if(!config.params) {
-    config.params = {}
-  }
-  config.params.apiKey = import.meta.env.VITE_GEOAPIFY_KEY
-  return config;
-});
-
-geoapifyApi.interceptors.response.use(
-  res => res,
-  error => {
-    console.error('Interseptor error', error);
-    return Promise.reject(error);
-  }
-);
-
-let ipLocationCache: LocationModel | null = null;
-const cityDetailsCache = new Map<string, SearchCitiesResultModel>();
+// Geocoding answers don't change while the page is open.
+const GEOCODING_TTL_MS = Infinity;
 
 export const GeoapifyApiService = {
   getIpLocation() {
-    const url = 'ipinfo';
-    if(!!ipLocationCache) {
-      return Promise.resolve(ipLocationCache!);
-    }
-    return geoapifyApi.get(url).then(res => {
-      const {
-        latitude: lat, longitude: lon
-      } = res.data?.location;
-      const ipLocation = { lat, lon } as LocationModel;
-      return ipLocation;
-    })
-    .then(ipLocation => {
-      ipLocationCache = ipLocation;
-      return ipLocation;
-    })
-    .catch(() => undefined);
+    return request<LocationModel>({
+      api: 'geoapify',
+      url: 'ipinfo',
+      ttl: GEOCODING_TTL_MS,
+      parse: raw => {
+        const { latitude: lat, longitude: lon } = raw.location;
+        return { lat, lon };
+      },
+    });
   },
 
-  getCityDetails(request: CityDetailsRequest) {
-    const url = 'geocode/reverse';
-    const params = {
-      ...request,
-      type: 'city',
-    };
-    // Object key in Map is always unique. Map().has - returns false for the same object structure. Convert obj to string
-    const paramsString = JSON.stringify(params); 
-
-    if(cityDetailsCache.has(paramsString)) {
-      return Promise.resolve(cityDetailsCache.get(paramsString)!);
-    }
-
-    return geoapifyApi.get(url, {params})
-      .then(res => {
-        const resultProperties = res.data?.features?.[0]?.properties;
-        const searchCitiesResult = getSearchCitiesResultModel(resultProperties)!;
-        return searchCitiesResult;
-      })
-      .then(searchCitiesResult => {
-        cityDetailsCache.set(paramsString, searchCitiesResult);
-        return searchCitiesResult;
-      })
-      .catch(() => null);
+  getCityDetails(cityDetailsRequest: CityDetailsRequest) {
+    return request<SearchCitiesResultModel | null>({
+      api: 'geoapify',
+      url: 'geocode/reverse',
+      params: {
+        ...cityDetailsRequest,
+        type: 'city',
+      },
+      ttl: GEOCODING_TTL_MS,
+      parse: raw => getSearchCitiesResultModel(raw?.features?.[0]?.properties),
+    });
   },
 
-  searchCities(request: SearchCitiesRequest) {
-    const url = 'geocode/autocomplete';
-    const params = {
-      ...request,
-      type: 'city',
-    }
-    return geoapifyApi.get(url, {params})
-      .then(res => {
-        const searchResult = res.data.features.map(({ properties }: any) => {
-          const searchCitiesResult = getSearchCitiesResultModel(properties);
-          return searchCitiesResult;
-        });
+  searchCities(searchRequest: SearchCitiesRequest) {
+    return request<SearchCitiesResultModel[]>({
+      api: 'geoapify',
+      url: 'geocode/autocomplete',
+      params: {
+        ...searchRequest,
+        type: 'city',
+      },
+      ttl: GEOCODING_TTL_MS,
+      parse: raw => {
+        const searchResult = raw.features.map(({ properties }: any) => getSearchCitiesResultModel(properties));
         return uniqueByProps(searchResult, ['lat', 'lon']) as SearchCitiesResultModel[];
-      })
-      .catch(() => []);
+      },
+    });
   }
 }
 

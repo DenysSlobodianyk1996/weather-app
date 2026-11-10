@@ -27,8 +27,8 @@
   function loadCityDetails(request: CityDetailsRequest) {
     loading.value = true;
     GeoapifyApiService.getCityDetails(request)
-      .then(res => {
-        cityDetails.value = res;
+      .then(result => {
+        cityDetails.value = result.ok ? result.data : null;
       })
       .finally(() => {
         loading.value = false;

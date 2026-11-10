@@ -81,7 +81,9 @@
     }
 
     GeoapifyApiService.getIpLocation()
-      .then(ipLocation => {
+      .then(result => {
+        // Until #7 adds error states, a failed lookup leaves the first card empty.
+        const ipLocation = result.ok ? result.data : undefined;
         // Load ip location. If it was in favorite - use same obj values.
         const ipLocationCityCardInFavorite = favoriteCityCards.value.find(item => isEqualLocation(item.cityLocation!, ipLocation))
         const initCityCard: CityCardModel = ipLocationCityCardInFavorite ?? {

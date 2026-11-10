@@ -38,3 +38,8 @@ export interface Wind {
 }
 
 // export type Rain = Record<string, number>
+
+export interface ForecastModel {
+  list: WeatherList[]
+  timezoneOffset: number // Shift from UTC in seconds (OpenWeatherMap `city.timezone`)
+}

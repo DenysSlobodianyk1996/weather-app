@@ -87,8 +87,8 @@
   // Search city
   const loadCitiesBySearch = debounce((request: SearchCitiesRequest) => {
     GeoapifyApiService.searchCities(request)
-      .then(cities => {
-        citiesSearchResult.value = cities;
+      .then(result => {
+        citiesSearchResult.value = result.ok ? result.data : [];
       })
       .finally(() => {
         citySearchLoading.value = false;

@@ -12,7 +12,7 @@ There is no test runner and no linter. `npm run build` is the only check: run it
 
 ## Environment
 
-Needs a root `.env` with `VITE_OPEN_WEATHER_KEY` (OpenWeatherMap) and `VITE_GEOAPIFY_KEY` (Geoapify). Axios request interceptors add these keys to every request; callers never pass them.
+Needs a root `.env` with `VITE_OPEN_WEATHER_KEY` (OpenWeatherMap) and `VITE_GEOAPIFY_KEY` (Geoapify). One axios request interceptor in `src/services/request.service.ts` adds these keys to every request; callers never pass them.
 
 ## Deployment
 
@@ -43,9 +43,9 @@ Single-context: `docs/GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
 Vue 3 `<script setup>` + TypeScript, SCSS, vue-i18n, Chart.js, axios. There is no router and no store (no Pinia). `@` is an alias for `src/`. Most folders have an `index.ts` barrel, so import from `@/services`, `@/models`, `@/utils`, `@/static`.
 
 - `src/services/`: plain object singletons, not classes or composables.
-  - `WeatherApiService` calls the OpenWeatherMap 5-day/3-hour forecast in metric units. It adds `dt_txt_day` and `dt_txt_time` to each item.
-  - `GeoapifyApiService` handles IP geolocation, reverse geocoding (city details) and city autocomplete.
-  - Both cache responses in module-level `Map`s keyed by `JSON.stringify(params)`. They catch errors and return a fallback (`[]`, `null` or `undefined`), so callers never see a rejection.
+  - `request.service.ts` is the shared request helper: one axios client (10 s timeout, API keys added in one interceptor) and `request({ api, url, params, ttl, parse })`. It caches successful results by api, url and params until `ttl` ms pass (`Infinity` = life of the page). It never rejects: it resolves to `RequestResult<T>`, either `{ ok: true, data }` or `{ ok: false, error }` where `error.kind` is `timeout`, `network`, `http` (with `status`) or `invalid-response` (when `parse` throws). Failures are not cached.
+  - `WeatherApiService` calls the OpenWeatherMap 5-day/3-hour forecast in metric units, cached for 10 minutes. It returns `{ list, timezoneOffset }` (seconds from UTC) and adds `dt_txt_day` and `dt_txt_time` to each item.
+  - `GeoapifyApiService` handles IP geolocation, reverse geocoding (city details) and city autocomplete, cached for the life of the page.
   - `StorageService` wraps `localStorage` and JSON-encodes objects. Call `getItem(key, true)` to parse.
 - `src/features/weather/`: the only feature.
   - `WeatherFeature.vue` owns all state: `cityCards` (Main tab) and `favoriteCityCards` (Favorite tab). Children are presentational. They emit `add`, `update` and `remove` with a full `CityCardModel`, and `WeatherFeature.updateCityCard` works out whether the location or the favorite flag changed.

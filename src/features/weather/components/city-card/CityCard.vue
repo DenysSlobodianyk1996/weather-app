@@ -69,8 +69,9 @@
   function loadWeatherByLocation(request: ForcastRequestModel) {
     weather5Days3HoursForecastLoading.value = true;
      WeatherApiService.get5Days3HoursForecast(request)
-      .then(weather => {
-        weather5Days3HoursForecast.value = weather;
+      .then(result => {
+        // Until #7 adds error states, a failure shows as an empty forecast.
+        weather5Days3HoursForecast.value = result.ok ? result.data.list : [];
       })
       .finally(() => {
         weather5Days3HoursForecastLoading.value = false;
